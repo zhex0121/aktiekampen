@@ -3,331 +3,599 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Trading Platform Pro</title>
+<title>Handelsplattform</title>
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <style>
-:root {
-    --bg: #050505;
-    --surface: #121212;
-    --border: #282828;
-    --accent: #2962ff;
-    --up: #00ffaa;
-    --down: #ff3d71;
-    --text: #ffffff;
-    --text-dim: #b3b3b3;
+
+:root{
+
+--bg:#050505;
+--surface:#121212;
+--border:#282828;
+--accent:#2962ff;
+--up:#00ffaa;
+--down:#ff3d71;
+--text:#ffffff;
+--text-dim:#b3b3b3;
+
 }
 
-body {
-    font-family: 'Inter', -apple-system, sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    margin: 0;
-    display: grid;
-    grid-template-columns: 350px 1fr 300px;
-    height: 100vh;      /* full viewport height */
-    overflow: hidden;
+body{
+
+font-family:'Inter',-apple-system,sans-serif;
+
+background:var(--bg);
+
+color:var(--text);
+
+margin:0;
+
+display:grid;
+
+grid-template-columns:350px 1fr 300px;
+
+height:100vh;
+
+overflow:hidden;
+
 }
 
-/* Sidebar */
-.market-side {
-    display: grid;
-    grid-template-rows: auto 1fr; /* search box auto, stock list fills remaining space */
-    height: 100vh;
-    background: var(--surface);
-    border-right: 1px solid var(--border);
+/* Marknadslista */
+
+.market-side{
+
+display:grid;
+
+grid-template-rows:auto 1fr;
+
+height:100vh;
+
+background:var(--surface);
+
+border-right:1px solid var(--border);
+
 }
 
-.search-box {
-    padding: 15px;
-    border-bottom: 1px solid var(--border);
+.search-box{
+
+padding:15px;
+
+border-bottom:1px solid var(--border);
+
 }
 
-input {
-    width: 100%;
-    background: #1e1e1e;
-    border: 1px solid var(--border);
-    padding: 10px;
-    color: white;
-    border-radius: 4px;
-    box-sizing: border-box;
+input{
+
+width:100%;
+
+background:#1e1e1e;
+
+border:1px solid var(--border);
+
+padding:10px;
+
+color:white;
+
+border-radius:4px;
+
+box-sizing:border-box;
+
 }
 
-.stock-list {
-    overflow-y: auto;
-    scrollbar-width: thin;
-    scrollbar-color: var(--accent) transparent;
-    padding-right: 5px;
+.stock-list{
+
+overflow-y:auto;
+
+scrollbar-width:thin;
+
+scrollbar-color:var(--accent) transparent;
+
+padding-right:5px;
+
 }
 
-.stock-item {
-    padding: 12px 15px;
-    border-bottom: 1px solid var(--border);
-    cursor: pointer;
-    display: flex;
-    justify-content: space-between;
-    transition: background 0.2s;
+.stock-item{
+
+padding:12px 15px;
+
+border-bottom:1px solid var(--border);
+
+cursor:pointer;
+
+display:flex;
+
+justify-content:space-between;
+
+transition:background 0.2s;
+
 }
 
-.stock-item:hover { background: #1a1a1a; }
-.stock-item.active { background: #222; border-left: 3px solid var(--accent); }
+.stock-item:hover{
 
-/* Main Content */
-.main-content {
-    display: flex;
-    flex-direction: column;
-    padding: 20px;
-    background: var(--bg);
-    overflow: hidden;
+background:#1a1a1a;
+
 }
 
-.chart-container {
-    flex-grow: 1;
-    position: relative;
-    min-height: 0; /* allow flex child to shrink */
+.stock-item.active{
+
+background:#222;
+
+border-left:3px solid var(--accent);
+
 }
 
-/* Right Side - Trading */
-.trade-side {
-    border-left: 1px solid var(--border);
-    padding: 20px;
-    background: var(--surface);
+/* Main */
+
+.main-content{
+
+display:flex;
+
+flex-direction:column;
+
+padding:20px;
+
+background:var(--bg);
+
+overflow:hidden;
+
 }
 
-.stat-box {
-    margin-bottom: 20px;
-    padding-bottom: 20px;
-    border-bottom: 1px solid var(--border);
+.chart-container{
+
+flex-grow:1;
+
+position:relative;
+
+min-height:0;
+
 }
 
-.btn {
-    width: 100%;
-    padding: 12px;
-    border: none;
-    border-radius: 4px;
-    font-weight: bold;
-    cursor: pointer;
-    margin-top: 10px;
+/* Handelssida */
+
+.trade-side{
+
+border-left:1px solid var(--border);
+
+padding:20px;
+
+background:var(--surface);
+
 }
 
-.btn-buy { background: var(--up); color: black; }
-.btn-sell { background: var(--down); color: white; }
+.stat-box{
 
-.portfolio-list {
-    font-size: 0.85rem;
-    margin-top: 20px;
+margin-bottom:20px;
+
+padding-bottom:20px;
+
+border-bottom:1px solid var(--border);
+
 }
 
-.up { color: var(--up); }
-.down { color: var(--down); }
+.btn{
+
+width:100%;
+
+padding:12px;
+
+border:none;
+
+border-radius:4px;
+
+font-weight:bold;
+
+cursor:pointer;
+
+margin-top:10px;
+
+}
+
+.btn-buy{
+
+background:var(--up);
+
+color:black;
+
+}
+
+.btn-sell{
+
+background:var(--down);
+
+color:white;
+
+}
+
+.portfolio-list{
+
+font-size:0.85rem;
+
+margin-top:20px;
+
+}
+
+.up{
+
+color:var(--up);
+
+}
+
+.down{
+
+color:var(--down);
+
+}
+
 </style>
+
 </head>
+
 <body>
 
 <div class="market-side">
-    <div class="search-box">
-        <input type="text" id="searchInput" placeholder="Sök aktie (t.ex. AAPL, TSLA)..." oninput="filterStocks()">
-    </div>
-    <div class="stock-list" id="stockList"></div>
+
+<div class="search-box">
+
+<input
+type="text"
+id="searchInput"
+placeholder="Sök aktie..."
+oninput="filtreraAktier()">
+
+</div>
+
+<div
+class="stock-list"
+id="stockList">
+
+</div>
+
 </div>
 
 <div class="main-content">
-    <div id="chartHeader">
-        <h2 id="activeSymbol">Välj en aktie</h2>
-        <h1 id="activePrice">0.00</h1>
-    </div>
-    <div class="chart-container">
-        <canvas id="mainChart"></canvas>
-    </div>
+
+<div>
+
+<h2 id="activeSymbol">
+
+Välj en aktie
+
+</h2>
+
+<h1 id="activePrice">
+
+0.00
+
+</h1>
+
+</div>
+
+<div class="chart-container">
+
+<canvas id="mainChart"></canvas>
+
+</div>
+
 </div>
 
 <div class="trade-side">
-    <div class="stat-box">
-        <div style="color: var(--text-dim)">Tillgängligt kapital</div>
-        <div id="balanceDisplay" style="font-size: 1.5rem; font-weight: bold;">100 000.00 SEK</div>
-    </div>
 
-    <div id="tradeControls" style="display:none;">
-        <label style="font-size: 0.8rem; color: var(--text-dim)">ANTAL</label>
-        <input type="number" id="tradeAmount" value="1" min="1" style="margin: 10px 0 20px 0;">
-        <button class="btn btn-buy" onclick="executeTrade('buy')">KÖP</button>
-        <button class="btn btn-sell" onclick="executeTrade('sell')">SÄLJ</button>
-    </div>
+<div class="stat-box">
 
-    <div class="portfolio-list" id="portfolioDisplay">
-        <h4 style="border-bottom: 1px solid var(--border); padding-bottom: 5px;">PORTFÖLJ</h4>
-    </div>
+<div style="color:var(--text-dim)">
+
+Tillgängligt saldo
+
+</div>
+
+<div
+id="balanceDisplay"
+style="font-size:1.5rem;
+font-weight:bold;">
+
+100 000 SEK
+
+</div>
+
+</div>
+
+<div
+id="tradeControls"
+style="display:none;">
+
+<label
+style="font-size:0.8rem;
+color:var(--text-dim)">
+
+ANTAL
+
+</label>
+
+<input
+type="number"
+id="tradeAmount"
+value="1"
+min="1"
+style="margin:10px 0 20px 0;">
+
+<button
+class="btn btn-buy"
+onclick="genomförAffär('köp')">
+
+KÖP
+
+</button>
+
+<button
+class="btn btn-sell"
+onclick="genomförAffär('sälj')">
+
+SÄLJ
+
+</button>
+
+</div>
+
+<div
+class="portfolio-list"
+id="portfolioDisplay">
+
+<h4
+style="border-bottom:1px solid var(--border);
+padding-bottom:5px;">
+
+PORTFÖLJ
+
+</h4>
+
+</div>
+
 </div>
 
 <script>
-const symbols = ["AAPL","MSFT","GOOGL","AMZN","NVDA","TSLA","META","BRK.B","UNH","V","JPM","JNJ","LLY","XOM","WMT","MA","AVGO","PG","ORCL","ADBE","ASML","COST","CVX","HD","KO","PEP","ABBV","MRK","BAC","AZN","FMX","TM","NVO","SAP","ASML","SHEL","TTE","HSBC","SONY","UL","NKE","DIS","UPS","PM","INTC","AMD","TXN","QCOM","VZ","AMAT"];
-let stocks = {};
-let activeTicker = null;
-let balance = 100000;
-let portfolio = {};
-let chart = null;
 
-// Initialize stock data
-symbols.forEach(s => {
-    let basePrice = Math.random() * 2000 + 50;
-    stocks[s] = {
-        ticker: s,
-        price: basePrice,
-        history: Array.from({length: 50}, () => basePrice + (Math.random()-0.5)*20),
-        change: (Math.random()*4-2).toFixed(2)
-    };
+const symboler=[
+
+"AAPL","MSFT","GOOGL","AMZN","NVDA","TSLA",
+"META","BRK.B","UNH","V","JPM","JNJ","LLY",
+"XOM","WMT","MA","AVGO","PG","ORCL","ADBE"
+
+];
+
+let aktier={};
+
+let aktivAktie=null;
+
+let saldo=100000;
+
+let portfölj={};
+
+let chart=null;
+
+symboler.forEach(s=>{
+
+let basPris=Math.random()*2000+50;
+
+aktier[s]={
+
+ticker:s,
+
+pris:basPris,
+
+history:Array.from(
+
+{length:50},
+
+()=>basPris+(Math.random()-0.5)*20
+
+),
+
+change:(Math.random()*4-2).toFixed(2)
+
+};
+
 });
 
-function renderStockList(filter="") {
-    const container = document.getElementById('stockList');
-    container.innerHTML = "";
-    Object.keys(stocks).filter(s => s.includes(filter.toUpperCase())).forEach(s => {
-        const div = document.createElement('div');
-        div.className = `stock-item ${activeTicker===s ? 'active' : ''}`;
-        div.onclick = () => selectStock(s);
-        div.innerHTML = `<div><b>${s}</b></div>
-                         <div class="${stocks[s].change>=0 ? 'up':'down'}">${stocks[s].price.toFixed(2)}</div>`;
-        container.appendChild(div);
-    });
-}
+function renderStockList(filter=""){
 
-function selectStock(ticker) {
-    activeTicker = ticker;
-    document.getElementById('tradeControls').style.display = 'block';
-    document.getElementById('activeSymbol').innerText = ticker;
-    updateActiveDisplay();
-    renderStockList(document.getElementById('searchInput').value);
-    initChart();
-}
+const container=document.getElementById('stockList');
 
-function updateActiveDisplay() {
-    if(!activeTicker) return;
-    const s = stocks[activeTicker];
-    document.getElementById('activePrice').innerText = s.price.toFixed(2) + " SEK";
-    document.getElementById('activePrice').className = s.change>=0 ? 'up':'down';
-}
+container.innerHTML="";
 
-function initChart() {
-    const ctx = document.getElementById('mainChart').getContext('2d');
-    if(chart) chart.destroy();
-    chart = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: Array.from({length:50},(_,i)=>i),
-            datasets:[{
-                data: stocks[activeTicker].history,
-                borderColor:'#2962ff',
-                borderWidth:2,
-                pointRadius:0,
-                fill:true,
-                backgroundColor:'rgba(41,98,255,0.05)',
-                tension:0.2
-            }]
-        },
-        options:{
-            responsive:true,
-            maintainAspectRatio:false,
-            plugins:{legend:{display:false}},
-            scales:{
-                x:{display:false},
-                y:{grid:{color:'#1a1a1a'}, ticks:{color:'#555'}}
-            }
-        }
-    });
-}
+Object.keys(aktier)
 
-function executeTrade(type) {
-    let amount = parseInt(document.getElementById('tradeAmount').value);
+.filter(s=>s.includes(filter.toUpperCase()))
 
-    if(!activeTicker || isNaN(amount) || amount<=0){
-        alert("Ange ett giltigt antal aktier!");
-        return;
-    }
+.forEach(s=>{
 
-    const price = stocks[activeTicker].price;
-    const totalCost = price * amount;
+const div=document.createElement('div');
 
-    if(type==='buy'){
+div.className=
+`stock-item ${aktivAktie===s?'active':''}`;
 
-        if(balance>=totalCost){
+div.onclick=()=>väljAktie(s);
 
-            balance -= totalCost;
+div.innerHTML=
 
-            if(!portfolio[activeTicker]){
-                portfolio[activeTicker] = {
-                    shares:0,
-                    totalCost:0
-                };
-            }
+`<div><b>${s}</b></div>
 
-            portfolio[activeTicker].shares += amount;
-            portfolio[activeTicker].totalCost += totalCost;
+<div class="${
+aktier[s].change>=0?'up':'down'
+}">
 
-        } else {
-            alert("Inte tillräckligt kapital!");
-        }
+${aktier[s].pris.toFixed(2)}
 
-    }
+</div>`;
 
-    else if(type==='sell'){
+container.appendChild(div);
 
-        if(portfolio[activeTicker] && portfolio[activeTicker].shares>=amount){
-
-            const avgPrice =
-            portfolio[activeTicker].totalCost /
-            portfolio[activeTicker].shares;
-
-            balance += totalCost;
-
-            portfolio[activeTicker].shares -= amount;
-
-            portfolio[activeTicker].totalCost -= avgPrice * amount;
-
-            if(portfolio[activeTicker].shares===0){
-                delete portfolio[activeTicker];
-            }
-
-        } else {
-
-            alert("Du har inte så många aktier!");
-
-        }
-
-    }
-
-    updatePortfolio();
+});
 
 }
 
-function updatePortfolio(){
+function väljAktie(ticker){
+
+aktivAktie=ticker;
+
+document.getElementById('tradeControls')
+.style.display='block';
+
+document.getElementById('activeSymbol')
+.innerText=ticker;
+
+uppdateraAktiv();
+
+initChart();
+
+renderStockList(
+document.getElementById('searchInput').value
+);
+
+}
+
+function uppdateraAktiv(){
+
+if(!aktivAktie)return;
+
+const s=aktier[aktivAktie];
+
+document.getElementById('activePrice')
+.innerText=s.pris.toFixed(2)+" SEK";
+
+document.getElementById('activePrice')
+.className=s.change>=0?'up':'down';
+
+}
+
+function genomförAffär(typ){
+
+let antal=parseInt(
+document.getElementById('tradeAmount').value
+);
+
+if(!aktivAktie||isNaN(antal)||antal<=0){
+
+alert("Ange giltigt antal!");
+
+return;
+
+}
+
+const pris=aktier[aktivAktie].pris;
+
+const kostnad=pris*antal;
+
+if(typ==='köp'){
+
+if(saldo>=kostnad){
+
+saldo-=kostnad;
+
+if(!portfölj[aktivAktie]){
+
+portfölj[aktivAktie]={
+
+antal:0,
+
+totaltInköp:0
+
+};
+
+}
+
+portfölj[aktivAktie].antal+=antal;
+
+portfölj[aktivAktie].totaltInköp+=kostnad;
+
+}
+
+else{
+
+alert("Otillräckligt saldo");
+
+}
+
+}
+
+if(typ==='sälj'){
+
+if(
+portfölj[aktivAktie] &&
+portfölj[aktivAktie].antal>=antal
+){
+
+const snitt=
+
+portfölj[aktivAktie].totaltInköp/
+portfölj[aktivAktie].antal;
+
+saldo+=kostnad;
+
+portfölj[aktivAktie].antal-=antal;
+
+portfölj[aktivAktie].totaltInköp-=snitt*antal;
+
+if(portfölj[aktivAktie].antal===0){
+
+delete portfölj[aktivAktie];
+
+}
+
+}
+
+else{
+
+alert("Du äger inte så många");
+
+}
+
+}
+
+uppdateraPortfölj();
+
+}
+
+function uppdateraPortfölj(){
 
 document.getElementById('balanceDisplay')
-.innerText =
-balance.toLocaleString('sv-SE',
-{minimumFractionDigits:2})+" SEK";
 
-const container =
+.innerText=
+
+saldo.toLocaleString(
+'sv-SE',
+{minimumFractionDigits:2}
+)+" SEK";
+
+const container=
 document.getElementById('portfolioDisplay');
 
-container.innerHTML =
+container.innerHTML=
+
 '<h4 style="border-bottom:1px solid var(--border); padding-bottom:5px;">PORTFÖLJ</h4>';
 
-for(let s in portfolio){
+for(let s in portfölj){
 
-const shares = portfolio[s].shares;
+const antal=portfölj[s].antal;
 
-const avgPrice =
-portfolio[s].totalCost / shares;
+const snitt=
 
-const currentValue =
-shares * stocks[s].price;
+portfölj[s].totaltInköp/antal;
 
-const pnl =
-currentValue - portfolio[s].totalCost;
+const värde=
 
-const pnlPercent =
-(pnl / portfolio[s].totalCost)*100;
+antal*aktier[s].pris;
 
-container.innerHTML += `
+const resultat=
+
+värde-portfölj[s].totaltInköp;
+
+const procent=
+
+(resultat/portfölj[s].totaltInköp)*100;
+
+container.innerHTML+=`
 
 <div style="
 margin-bottom:12px;
@@ -341,10 +609,16 @@ justify-content:space-between;
 font-weight:bold;
 ">
 
-<span>${s} (${shares} st)</span>
+<span>
+
+${s} (${antal} st)
+
+</span>
 
 <span>
-${currentValue.toFixed(0)} kr
+
+${värde.toFixed(0)} kr
+
 </span>
 
 </div>
@@ -355,20 +629,27 @@ color:var(--text-dim);
 margin-top:4px;
 ">
 
-Avg. price per share:
-${avgPrice.toFixed(2)} kr
+Snittpris:
+${snitt.toFixed(2)} kr
 
 </div>
 
-<div class="${pnl>=0?'up':'down'}"
+<div class="${
+resultat>=0?'up':'down'
+}"
+
 style="
 font-size:0.75rem;
 margin-top:2px;
 ">
 
-PnL:
-${pnl>=0?'+':''}${pnl.toFixed(0)} kr
-(${pnlPercent.toFixed(2)}%)
+Resultat:
+
+${resultat>=0?'+':''}
+
+${resultat.toFixed(0)} kr
+
+(${procent.toFixed(2)}%)
 
 </div>
 
@@ -379,26 +660,54 @@ ${pnl>=0?'+':''}${pnl.toFixed(0)} kr
 }
 
 }
-function filterStocks() { renderStockList(document.getElementById('searchInput').value); }
 
-// Live price simulation
+function filtreraAktier(){
+
+renderStockList(
+
+document.getElementById('searchInput').value
+
+);
+
+}
+
 setInterval(()=>{
-    Object.keys(stocks).forEach(s=>{
-        const change = 1+(Math.random()-0.5)*0.01;
-        stocks[s].price *= change;
-        stocks[s].history.push(stocks[s].price);
-        stocks[s].history.shift();
-    });
-    updateActiveDisplay();
-    updatePortfolio();
-    if(chart && activeTicker){
-        chart.data.datasets[0].data = stocks[activeTicker].history;
-        chart.update('none');
-    }
+
+Object.keys(aktier).forEach(s=>{
+
+const change=
+1+(Math.random()-0.5)*0.01;
+
+aktier[s].pris*=change;
+
+aktier[s].history.push(
+aktier[s].pris
+);
+
+aktier[s].history.shift();
+
+});
+
+uppdateraAktiv();
+
+uppdateraPortfölj();
+
+if(chart&&aktivAktie){
+
+chart.data.datasets[0].data=
+aktier[aktivAktie].history;
+
+chart.update('none');
+
+}
+
 },2000);
 
 renderStockList();
-updatePortfolio();
+
+uppdateraPortfölj();
+
 </script>
+
 </body>
 </html>

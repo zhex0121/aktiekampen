@@ -774,45 +774,38 @@ function updateChartView(){
 
     const history = aktier[aktivAktie].history;
 
-    if(chartMode==='live'){
+    if(chartMode === 'live'){
+        // In Live mode, we usually want to see the most recent data
+        // but we allow the user to see more if they zoomed out
+        chart.data.datasets[0].data = history; 
 
-        // Always exactly LIVE_CANDLES
-        const liveData = history.slice(-LIVE_CANDLES);
-        chart.data.datasets[0].data = liveData;
-
-        // Auto zoom/pan only if auto-scroll enabled
-        if(liveAutoScrollEnabled && liveData.length){
-            const newest = liveData[liveData.length-1].x;
-            const oldest = liveData[0].x;
-            const range = newest - oldest;
-
-            const offset = range / 3; // newest slightly right
-            chart.options.scales.x.min = oldest - offset;
-            chart.options.scales.x.max = newest + offset;
+        if(liveAutoScrollEnabled && history.length){
+            const newest = history[history.length - 1].x;
+            // Show the last 30 minutes by default in live mode
+            const viewWindow = 30 * 60 * 1000; 
+            
+            chart.options.scales.x.min = newest - viewWindow;
+            chart.options.scales.x.max = newest + (viewWindow * 0.05); // 5% padding on the right
         }
 
-        // Disable manual zoom/pan in live mode
-        chart.options.plugins.zoom.pan.enabled = false;
-        chart.options.plugins.zoom.zoom.wheel.enabled = false;
-        chart.options.plugins.zoom.zoom.pinch.enabled = false;
-
-    } else {
-
-        // Historical mode: full history, free zoom/pan
-        chart.data.datasets[0].data = history;
-        // Keep user zoom/pan by not resetting min/max
-        // Only reset if user explicitly switches to LIVE
-        chart.options.scales.x.min = chart.options.scales.x.min;
-        chart.options.scales.x.max = chart.options.scales.x.max;
-
+        // Re-enable zoom/pan so "zooming out" actually works
         chart.options.plugins.zoom.pan.enabled = true;
         chart.options.plugins.zoom.zoom.wheel.enabled = true;
         chart.options.plugins.zoom.zoom.pinch.enabled = true;
+
+    } else {
+        // Historical mode: show all data
+        chart.data.datasets[0].data = history;
+        chart.options.plugins.zoom.pan.enabled = true;
+        chart.options.plugins.zoom.zoom.wheel.enabled = true;
     }
 
-    chart.update('none');
+    // This part ensures the candles don't look "flat" by 
+    // forcing the Y-axis to fit the visible high/low prices
+    chart.options.scales.y.beginAtZero = false; 
+    
+    chart.update('none'); // Update without resetting animations
 }
-
 
 
 

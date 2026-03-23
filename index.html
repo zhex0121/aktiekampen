@@ -261,6 +261,28 @@ id="stockList">
 
 <div class="main-content">
 
+<div style="margin-bottom:10px;">
+
+<button class="btn"
+style="width:auto;background:#1e1e1e;color:white;margin-right:5px;"
+onclick="setChartMode('live')"
+id="liveBtn">
+
+LIVE
+
+</button>
+
+<button class="btn"
+style="width:auto;background:#1e1e1e;color:white;"
+onclick="setChartMode('history')"
+id="historyBtn">
+
+HISTORICAL
+
+</button>
+
+</div>
+  
 <div>
 
 <h2 id="activeSymbol">
@@ -374,6 +396,8 @@ const symboler=[
 
 let aktier={};
 
+let liveAutoScrollEnabled = true; // true when we want LIVE to auto pan
+  
 let aktivAktie=null;
 
 let saldo=100000;
@@ -381,6 +405,12 @@ let saldo=100000;
 let portfölj={};
 
 let chart=null;
+
+let chartMode='live'; // live or history
+
+const LIVE_CANDLES=30;
+
+  
 let priceFlashTimeout=null;
 
 const CHART_WINDOW_MS=20*60*1000;
@@ -390,7 +420,7 @@ const MAX_CANDLES=120;
 const CANDLE_MS=60000;
 const PRICE_UPDATE_MS=2000;
 
-function genereraStartCandles(aktie, antal=50){
+function genereraStartCandles(aktie, antal=100){
 
   let pris = aktie.pris;
   let nu = Date.now();
@@ -445,7 +475,7 @@ change:(Math.random()*4-2).toFixed(2)
 
 };
 
-genereraStartCandles(aktier[s],50);
+genereraStartCandles(aktier[s],100);
 
 });
 
@@ -486,26 +516,31 @@ container.appendChild(div);
 
 }
 
+
+
+
+
+  
 function väljAktie(ticker){
+    aktivAktie = ticker;
 
-aktivAktie=ticker;
+    document.getElementById('tradeControls').style.display = 'block';
+    document.getElementById('activeSymbol').innerText = ticker;
 
-document.getElementById('tradeControls')
-.style.display='block';
+    uppdateraAktiv();
+    
+    // Se till att vi kör updateChartView så fort charten skapas i initChart
+    initChart(); 
 
-document.getElementById('activeSymbol')
-.innerText=ticker;
-
-uppdateraAktiv();
-
-initChart();
-
-renderStockList(
-document.getElementById('searchInput').value
-);
-
+    renderStockList(document.getElementById('searchInput').value);
 }
 
+
+
+
+
+
+  
 function uppdateraAktiv(riktning=null){
 
 if(!aktivAktie)return;
@@ -701,10 +736,99 @@ grace:'5%'
 
 });
 
-sättDiagramTidsfönster();
+chart.options.plugins.zoom.onPan = function() {
+    if(chartMode === 'live'){
+        liveAutoScrollEnabled = false; // user manually moved chart
+    }
+};
+chart.options.plugins.zoom.onZoom = function() {
+    if(chartMode === 'live'){
+        liveAutoScrollEnabled = false; // user manually zoomed
+    }
+};
 
+// VIKTIGT: Anropa updateChartView direkt här för att sätta 75%-vyn innan ritning
+    updateChartView();
 }
 
+
+
+
+  
+function setChartMode(mode){
+    chartMode = mode;
+
+    document.getElementById('liveBtn').style.background =
+        mode==='live' ? '#2962ff' : '#1e1e1e';
+    document.getElementById('historyBtn').style.background =
+        mode==='history' ? '#2962ff' : '#1e1e1e';
+
+    // Reset auto-scroll when switching to live
+    liveAutoScrollEnabled = (mode === 'live');
+
+    updateChartView();
+}
+
+
+  
+function updateChartView(){
+    if(!chart || !aktivAktie) return;
+
+    const history = aktier[aktivAktie].history;
+
+    if(chartMode === 'live'){
+        chart.data.datasets[0].data = history; 
+
+        if(liveAutoScrollEnabled && history.length){
+            const newest = history[history.length - 1].x;
+            
+            // Vi definierar hur stort tidsfönster vi vill se (t.ex. 30 minuter)
+            const viewWindow = 30 * 60 * 1000; 
+            
+            /* För att candlen ska hamna på 75% av skärmens bredd:
+               Om fönstret är 30 min (100%), så ska 75% vara bakåt och 25% vara framåt.
+               25% av 30 min = 7.5 min (viewWindow * 0.25)
+            */
+            const rightPadding = viewWindow * 0.33; // Justera till 0.33 för att få candlen ca 75% till vänster om högerkanten
+
+            chart.options.scales.x.min = newest - (viewWindow - rightPadding);
+            chart.options.scales.x.max = newest + rightPadding;
+
+            // --- VERTIKAL CENTRERING ---
+            // Vi hittar högsta och lägsta pris i det synliga fönstret
+            const visibleCandles = history.filter(c => c.x >= chart.options.scales.x.min);
+            if(visibleCandles.length > 0) {
+                const highs = visibleCandles.map(c => c.h);
+                const lows = visibleCandles.map(c => c.l);
+                const maxPrice = Math.max(...highs);
+                const minPrice = Math.min(...lows);
+                const margin = (maxPrice - minPrice) * 0.2; // 20% marginal uppe/nere
+
+                chart.options.scales.y.min = minPrice - margin;
+                chart.options.scales.y.max = maxPrice + margin;
+            }
+        }
+
+        chart.options.plugins.zoom.pan.enabled = true;
+        chart.options.plugins.zoom.zoom.wheel.enabled = true;
+        chart.options.plugins.zoom.zoom.pinch.enabled = true;
+
+    } else {
+        // Historical mode
+        chart.data.datasets[0].data = history;
+        // Här låter vi Chart.js sköta y-axeln automatiskt eller behåller zoom
+        chart.options.scales.y.min = undefined;
+        chart.options.scales.y.max = undefined;
+    }
+
+    chart.options.scales.y.beginAtZero = false; 
+    chart.update('none'); 
+}
+
+
+
+  
+  
 function genomförAffär(typ){
 
 const råVärde=document.getElementById('tradeAmount').value.trim();
@@ -965,21 +1089,35 @@ setInterval(()=>{
     uppdateraAktiv(aktivRiktning);
     uppdateraPortfölj();
 
-    if(chart && aktivAktie){
-        chart.data.datasets[0].data = aktier[aktivAktie].history;
-        chart.update('none');
-    }
+  if(chart && aktivAktie){
+
+updateChartView();
+
+}
 
     // Uppdatera sidopanelen automatiskt utan färg
     renderStockList(document.getElementById('searchInput').value);
 
 }, PRICE_UPDATE_MS);
   
+// 1. Rendera listan först
 renderStockList();
 
+// 2. Uppdatera portföljvisningen
 uppdateraPortfölj();
-document.getElementById('tradeAmount').addEventListener('input',rensaTradeFel);
 
+// 3. Välj en aktie automatiskt (t.ex. Apple)
+// Detta kommer köra väljAktie -> initChart -> updateChartView (med 75%-logiken)
+väljAktie("Apple (AAPL)");
+
+// 4. Se till att Live-knappen lyser blått och systemet vet att vi är i live-mode
+setChartMode('live');
+
+// 5. Håll kvar din error-rensares lyssnare
+document.getElementById('tradeAmount').addEventListener('input', rensaTradeFel);
+
+
+  
 </script>
 
 </body>

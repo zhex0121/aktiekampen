@@ -463,16 +463,10 @@ div.className=
 
 div.onclick=()=>väljAktie(s);
 
-div.innerHTML=
-
+div.innerHTML =
 `<div><b>${s}</b></div>
-
-<div class="${
-aktier[s].change>=0?'up':'down'
-}">
-
+<div>
 ${aktier[s].pris.toFixed(2)}
-
 </div>`;
 
 container.appendChild(div);
@@ -892,98 +886,46 @@ document.getElementById('searchInput').value
 
 }
 
+
 /* Live pris */
-
 setInterval(()=>{
+    Object.keys(aktier).forEach(s=>{
+        let aktie = aktier[s];
+        let gammaltPris = aktie.pris;
+        let nyttPris = gammaltPris * (1 + (Math.random()-0.5)*0.01);
+        aktie.pris = nyttPris;
 
-Object.keys(aktier).forEach(s=>{
+        // Uppdatera candlestick
+        let nu = Date.now();
+        let senasteCandle = aktie.history[aktie.history.length-1];
+        if(nu - senasteCandle.x < CANDLE_MS){
+            senasteCandle.c = nyttPris;
+            senasteCandle.h = Math.max(senasteCandle.h, senasteCandle.o, senasteCandle.c);
+            senasteCandle.l = Math.min(senasteCandle.l, senasteCandle.o, senasteCandle.c);
+        } else {
+            aktie.history.push({
+                x: nu,
+                o: senasteCandle.c,
+                h: Math.max(senasteCandle.c, nyttPris),
+                l: Math.min(senasteCandle.c, nyttPris),
+                c: nyttPris
+            });
+            if(aktie.history.length > MAX_CANDLES) aktie.history.shift();
+        }
+    });
 
-let aktie=aktier[s];
+    uppdateraAktiv();
+    uppdateraPortfölj();
 
-let gammaltPris=aktie.pris;
+    if(chart && aktivAktie){
+        chart.data.datasets[0].data = aktier[aktivAktie].history;
+        chart.update('none');
+    }
 
-let nyttPris=
+    // Uppdatera sidopanelen automatiskt utan färg
+    renderStockList(document.getElementById('searchInput').value);
 
-gammaltPris*
-(1+(Math.random()-0.5)*0.01);
-
-aktie.pris=nyttPris;
-
-let nu=Date.now();
-
-let senasteCandle=
-
-aktie.history[aktie.history.length-1];
-
-if(!senasteCandle) return;
-
-if(nu-senasteCandle.x<CANDLE_MS){
-
-// uppdatera nuvarande candle
-
-senasteCandle.c=nyttPris;
-
-senasteCandle.h=
-Math.max(
-senasteCandle.h,
-senasteCandle.o,
-senasteCandle.c
-);
-
-senasteCandle.l=
-Math.min(
-senasteCandle.l,
-senasteCandle.o,
-senasteCandle.c
-);
-
-}else{
-
-// skapa ny candle
-
-aktie.history.push({
-
-x:nu,
-
-o:senasteCandle.c,
-
-h:Math.max(senasteCandle.c,nyttPris),
-
-l:Math.min(senasteCandle.c,nyttPris),
-
-c:nyttPris
-
-});
-
-
-
-if(aktie.history.length>MAX_CANDLES){
-
-aktie.history.shift();
-
-}
-
-}
-
-});
-
-uppdateraAktiv();
-
-uppdateraPortfölj();
-
-if(chart&&aktivAktie){
-
-chart.data.datasets[0].data=
-
-aktier[aktivAktie].history;
-
-sättDiagramTidsfönster();
-
-chart.update('none');
-
-}
-
-},PRICE_UPDATE_MS);
+}, PRICE_UPDATE_MS);
   
 renderStockList();
 

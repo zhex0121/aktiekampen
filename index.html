@@ -754,52 +754,47 @@ updateChartView();
 
   
 function updateChartView(){
+    if(!chart || !aktivAktie) return;
 
-if(!chart || !aktivAktie) return;
+    const history = aktier[aktivAktie].history;
 
-if(chartMode==='live'){
+    if(chartMode==='live'){
 
-let history=
-aktier[aktivAktie].history;
+        // Always exactly LIVE_CANDLES
+        const liveData = history.slice(-LIVE_CANDLES);
+        chart.data.datasets[0].data = liveData;
 
-let liveData=
-history.length>LIVE_CANDLES ?
+        // Auto zoom/pan: newest candle slightly right
+        if(liveData.length){
+            const newest = liveData[liveData.length-1].x;
+            const oldest = liveData[0].x;
+            const range = newest - oldest;
 
-history.slice(history.length-LIVE_CANDLES)
+            // Shift the view so newest candle is 2/3 to the right
+            const offset = range / 3; 
+            chart.options.scales.x.min = oldest - offset;
+            chart.options.scales.x.max = newest + offset;
+        }
 
-:
+        // Disable zoom/pan in live mode
+        chart.options.plugins.zoom.pan.enabled = false;
+        chart.options.plugins.zoom.zoom.wheel.enabled = false;
+        chart.options.plugins.zoom.zoom.pinch.enabled = false;
 
-history;
+    } else {
 
-chart.data.datasets[0].data=liveData;
+        // Historical mode: full history, free zoom/pan
+        chart.data.datasets[0].data = history;
+        chart.options.scales.x.min = undefined;
+        chart.options.scales.x.max = undefined;
 
-/* Disable zoom in live */
+        chart.options.plugins.zoom.pan.enabled = true;
+        chart.options.plugins.zoom.zoom.wheel.enabled = true;
+        chart.options.plugins.zoom.zoom.pinch.enabled = true;
 
-chart.options.plugins.zoom.pan.enabled=false;
+    }
 
-chart.options.plugins.zoom.zoom.wheel.enabled=false;
-
-chart.options.plugins.zoom.zoom.pinch.enabled=false;
-
-}
-
-else{
-
-chart.data.datasets[0].data=
-aktier[aktivAktie].history;
-
-/* Enable zoom in history */
-
-chart.options.plugins.zoom.pan.enabled=true;
-
-chart.options.plugins.zoom.zoom.wheel.enabled=true;
-
-chart.options.plugins.zoom.zoom.pinch.enabled=true;
-
-}
-
-chart.update('none');
-
+    chart.update('none');
 }
 
 

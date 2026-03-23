@@ -261,6 +261,28 @@ id="stockList">
 
 <div class="main-content">
 
+<div style="margin-bottom:10px;">
+
+<button class="btn"
+style="width:auto;background:#1e1e1e;color:white;margin-right:5px;"
+onclick="setChartMode('live')"
+id="liveBtn">
+
+LIVE
+
+</button>
+
+<button class="btn"
+style="width:auto;background:#1e1e1e;color:white;"
+onclick="setChartMode('history')"
+id="historyBtn">
+
+HISTORICAL
+
+</button>
+
+</div>
+  
 <div>
 
 <h2 id="activeSymbol">
@@ -381,6 +403,12 @@ let saldo=100000;
 let portfölj={};
 
 let chart=null;
+
+let chartMode='live'; // live or history
+
+const LIVE_CANDLES=30;
+
+  
 let priceFlashTimeout=null;
 
 const CHART_WINDOW_MS=20*60*1000;
@@ -705,6 +733,80 @@ sättDiagramTidsfönster();
 
 }
 
+updateChartView();
+  
+function setChartMode(mode){
+
+chartMode=mode;
+
+document.getElementById('liveBtn')
+.style.background=
+mode==='live' ? '#2962ff' : '#1e1e1e';
+
+document.getElementById('historyBtn')
+.style.background=
+mode==='history' ? '#2962ff' : '#1e1e1e';
+
+updateChartView();
+
+}
+
+
+  
+function updateChartView(){
+
+if(!chart || !aktivAktie) return;
+
+if(chartMode==='live'){
+
+let history=
+aktier[aktivAktie].history;
+
+let liveData=
+history.length>LIVE_CANDLES ?
+
+history.slice(history.length-LIVE_CANDLES)
+
+:
+
+history;
+
+chart.data.datasets[0].data=liveData;
+
+/* Disable zoom in live */
+
+chart.options.plugins.zoom.pan.enabled=false;
+
+chart.options.plugins.zoom.zoom.wheel.enabled=false;
+
+chart.options.plugins.zoom.zoom.pinch.enabled=false;
+
+}
+
+else{
+
+chart.data.datasets[0].data=
+aktier[aktivAktie].history;
+
+/* Enable zoom in history */
+
+chart.options.plugins.zoom.pan.enabled=true;
+
+chart.options.plugins.zoom.zoom.wheel.enabled=true;
+
+chart.options.plugins.zoom.zoom.pinch.enabled=true;
+
+}
+
+chart.update('none');
+
+}
+
+
+
+
+  
+  
 function genomförAffär(typ){
 
 const råVärde=document.getElementById('tradeAmount').value.trim();
@@ -965,10 +1067,11 @@ setInterval(()=>{
     uppdateraAktiv(aktivRiktning);
     uppdateraPortfölj();
 
-    if(chart && aktivAktie){
-        chart.data.datasets[0].data = aktier[aktivAktie].history;
-        chart.update('none');
-    }
+  if(chart && aktivAktie){
+
+updateChartView();
+
+}
 
     // Uppdatera sidopanelen automatiskt utan färg
     renderStockList(document.getElementById('searchInput').value);

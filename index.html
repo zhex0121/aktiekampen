@@ -934,12 +934,18 @@ if(nu-senasteCandle.x<CANDLE_MS){
 senasteCandle.c=nyttPris;
 
 senasteCandle.h=
-
-Math.max(senasteCandle.h,nyttPris);
+Math.max(
+senasteCandle.h,
+senasteCandle.o,
+senasteCandle.c
+);
 
 senasteCandle.l=
-
-Math.min(senasteCandle.l,nyttPris);
+Math.min(
+senasteCandle.l,
+senasteCandle.o,
+senasteCandle.c
+);
 
 }else{
 
@@ -951,13 +957,15 @@ x:nu,
 
 o:senasteCandle.c,
 
-h:nyttPris,
+h:Math.max(senasteCandle.c,nyttPris),
 
-l:nyttPris,
+l:Math.min(senasteCandle.c,nyttPris),
 
 c:nyttPris
 
 });
+
+
 
 if(aktie.history.length>MAX_CANDLES){
 

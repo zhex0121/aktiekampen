@@ -775,36 +775,52 @@ function updateChartView(){
     const history = aktier[aktivAktie].history;
 
     if(chartMode === 'live'){
-        // In Live mode, we usually want to see the most recent data
-        // but we allow the user to see more if they zoomed out
         chart.data.datasets[0].data = history; 
 
         if(liveAutoScrollEnabled && history.length){
             const newest = history[history.length - 1].x;
-            // Show the last 30 minutes by default in live mode
+            
+            // Vi definierar hur stort tidsfönster vi vill se (t.ex. 30 minuter)
             const viewWindow = 30 * 60 * 1000; 
             
-            chart.options.scales.x.min = newest - viewWindow;
-            chart.options.scales.x.max = newest + (viewWindow * 0.05); // 5% padding on the right
+            /* För att candlen ska hamna på 75% av skärmens bredd:
+               Om fönstret är 30 min (100%), så ska 75% vara bakåt och 25% vara framåt.
+               25% av 30 min = 7.5 min (viewWindow * 0.25)
+            */
+            const rightPadding = viewWindow * 0.33; // Justera till 0.33 för att få candlen ca 75% till vänster om högerkanten
+
+            chart.options.scales.x.min = newest - (viewWindow - rightPadding);
+            chart.options.scales.x.max = newest + rightPadding;
+
+            // --- VERTIKAL CENTRERING ---
+            // Vi hittar högsta och lägsta pris i det synliga fönstret
+            const visibleCandles = history.filter(c => c.x >= chart.options.scales.x.min);
+            if(visibleCandles.length > 0) {
+                const highs = visibleCandles.map(c => c.h);
+                const lows = visibleCandles.map(c => c.l);
+                const maxPrice = Math.max(...highs);
+                const minPrice = Math.min(...lows);
+                const margin = (maxPrice - minPrice) * 0.2; // 20% marginal uppe/nere
+
+                chart.options.scales.y.min = minPrice - margin;
+                chart.options.scales.y.max = maxPrice + margin;
+            }
         }
 
-        // Re-enable zoom/pan so "zooming out" actually works
         chart.options.plugins.zoom.pan.enabled = true;
         chart.options.plugins.zoom.zoom.wheel.enabled = true;
         chart.options.plugins.zoom.zoom.pinch.enabled = true;
 
     } else {
-        // Historical mode: show all data
+        // Historical mode
         chart.data.datasets[0].data = history;
-        chart.options.plugins.zoom.pan.enabled = true;
-        chart.options.plugins.zoom.zoom.wheel.enabled = true;
+        // Här låter vi Chart.js sköta y-axeln automatiskt eller behåller zoom
+        chart.options.scales.y.min = undefined;
+        chart.options.scales.y.max = undefined;
     }
 
-    // This part ensures the candles don't look "flat" by 
-    // forcing the Y-axis to fit the visible high/low prices
     chart.options.scales.y.beginAtZero = false; 
-    
-    chart.update('none'); // Update without resetting animations
+    chart.update('none'); 
 }
 
 

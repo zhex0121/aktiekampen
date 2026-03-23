@@ -742,12 +742,12 @@ chart.options.plugins.zoom.onZoom = function() {
     }
 };
 
+// VIKTIGT: Anropa updateChartView direkt här för att sätta 75%-vyn innan ritning
+    updateChartView();
+  
 sättDiagramTidsfönster();
 
 }
-
-updateChartView();
-
 
 
 
@@ -1098,11 +1098,24 @@ updateChartView();
 
 }, PRICE_UPDATE_MS);
   
+// 1. Rendera listan först
 renderStockList();
 
+// 2. Uppdatera portföljvisningen
 uppdateraPortfölj();
-document.getElementById('tradeAmount').addEventListener('input',rensaTradeFel);
 
+// 3. Välj en aktie automatiskt (t.ex. Apple)
+// Detta kommer köra väljAktie -> initChart -> updateChartView (med 75%-logiken)
+väljAktie("Apple (AAPL)");
+
+// 4. Se till att Live-knappen lyser blått och systemet vet att vi är i live-mode
+setChartMode('live');
+
+// 5. Håll kvar din error-rensares lyssnare
+document.getElementById('tradeAmount').addEventListener('input', rensaTradeFel);
+
+
+  
 </script>
 
 </body>

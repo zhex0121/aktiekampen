@@ -454,9 +454,15 @@ const container=document.getElementById('stockList');
 
 container.innerHTML="";
 
-Object.keys(aktier)
+const sökord = filter.toLowerCase();
 
-.filter(s=>s.includes(filter.toUpperCase()))
+Object.keys(aktier)
+    .filter(s => {
+        if (sökord === "") return true;
+        const namn = s.split(' (')[0].toLowerCase();
+        const ticker = s.split(' (')[1].replace(')', '').toLowerCase();
+        return namn.startsWith(sökord) || ticker.startsWith(sökord);
+    })
 
 .forEach(s=>{
 

@@ -381,47 +381,37 @@ const PRICE_UPDATE_MS=2000;
 
 function genereraStartCandles(aktie, antal=20){
 
-let pris=aktie.pris;
+  let pris = aktie.pris;
+  let nu = Date.now();
+  let startTid = nu - (antal*CANDLE_MS);
 
-let nu=Date.now();
+  for(let i=0;i<antal;i++){
+    let open = pris;
+    let high = open;
+    let low = open;
+    let close = open;
 
-let startTid=nu-(antal*CANDLE_MS);
+    // Simulera varje 2s uppdatering inom denna 1-min candle
+    for(let t=PRICE_UPDATE_MS; t<=CANDLE_MS; t+=PRICE_UPDATE_MS){
+      let nyttPris = close * (1 + (Math.random()-0.5)*0.02); // samma som live update
+      close = nyttPris;
+      high = Math.max(high, nyttPris);
+      low = Math.min(low, nyttPris);
+    }
 
-for(let i=0;i<antal;i++){
+    aktie.history.push({
+      x: startTid,
+      o: open,
+      h: high,
+      l: low,
+      c: close
+    });
 
-let open=pris;
+    pris = close;
+    startTid += CANDLE_MS;
+  }
 
-let close=
-open*(1+(Math.random()-0.5)*0.01);
-
-let high=
-Math.max(open,close)+Math.random()*5;
-
-let low=
-Math.min(open,close)-Math.random()*5;
-
-aktie.history.push({
-
-x:startTid,
-
-o:open,
-
-h:high,
-
-l:low,
-
-c:close
-
-});
-
-pris=close;
-
-startTid+=CANDLE_MS;
-
-}
-
-aktie.pris=pris;
-
+  aktie.pris = pris;
 }
   
 /* Init aktier */

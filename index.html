@@ -379,7 +379,7 @@ const MAX_CANDLES=120;
 const CANDLE_MS=60000;
 const PRICE_UPDATE_MS=2000;
 
-function genereraStartCandles(aktie, antal=20){
+function genereraStartCandles(aktie, antal=50){
 
   let pris = aktie.pris;
   let nu = Date.now();
@@ -434,7 +434,7 @@ change:(Math.random()*4-2).toFixed(2)
 
 };
 
-genereraStartCandles(aktier[s],20);
+genereraStartCandles(aktier[s],50);
 
 });
 

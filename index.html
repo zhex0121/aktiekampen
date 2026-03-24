@@ -529,7 +529,7 @@ function väljAktie(ticker){
 
     uppdateraAktiv();
     
-    // Se till att vi kör  så fort charten skapas i initChart
+    // Se till att vi kör updateChartView så fort charten skapas i initChart
     initChart(); 
 
     renderStockList(document.getElementById('searchInput').value);
@@ -747,8 +747,8 @@ chart.options.plugins.zoom.onZoom = function() {
     }
 };
 
-// VIKTIGT: Anropa  direkt här för att sätta 75%-vyn innan ritning
-    ();
+// VIKTIGT: Anropa updateChartView direkt här för att sätta 75%-vyn innan ritning
+    updateChartView();
 }
 
 
@@ -763,15 +763,12 @@ function setChartMode(mode){
     document.getElementById('historyBtn').style.background =
         mode==='history' ? '#2962ff' : '#1e1e1e';
 
+    // Reset auto-scroll when switching to live
     liveAutoScrollEnabled = (mode === 'live');
-
-    // OM vi byter till historik, zooma ut direkt en gång
-    if(mode === 'history' && chart) {
-        chart.resetZoom();
-    }
 
     updateChartView();
 }
+
 
   
 function updateChartView(){
@@ -810,14 +807,14 @@ function updateChartView(){
         chart.options.plugins.zoom.zoom.pinch.enabled = false;
 
     } else {
-        // --- HISTORIK-LÄGE ---
+        // --- HÄR LÅSER VI UPP HISTORICAL ---
         chart.data.datasets[0].data = history;
-
-        // Återställ y-axeln till auto
+        
+        // Återställ y-axeln till auto så man kan se allt
         chart.options.scales.y.min = undefined;
         chart.options.scales.y.max = undefined;
 
-        // Aktivera zoom/pan igen så man kan utforska
+        // Aktivera zoom/pan igen
         chart.options.plugins.zoom.pan.enabled = true;
         chart.options.plugins.zoom.zoom.wheel.enabled = true;
         chart.options.plugins.zoom.zoom.pinch.enabled = true;

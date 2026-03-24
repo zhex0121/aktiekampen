@@ -806,20 +806,39 @@ function updateChartView(){
         chart.options.plugins.zoom.zoom.wheel.enabled = false;
         chart.options.plugins.zoom.zoom.pinch.enabled = false;
 
-    } else {
-        // --- HÄR LÅSER VI UPP HISTORICAL ---
-        chart.data.datasets[0].data = history;
-        
-        // Återställ y-axeln till auto så man kan se allt
-        chart.options.scales.y.min = undefined;
-        chart.options.scales.y.max = undefined;
 
-        // Aktivera zoom/pan igen
-        chart.options.plugins.zoom.pan.enabled = true;
-        chart.options.plugins.zoom.zoom.wheel.enabled = true;
-        chart.options.plugins.zoom.zoom.pinch.enabled = true;
+      
+   } else {
+    // --- HISTORICAL MODE ---
+    chart.data.datasets[0].data = history;
+
+    // Reset zoom först
+    if(typeof chart.resetZoom === 'function'){
+        chart.resetZoom();
     }
 
+    if(history.length){
+        const first = history[0].x;
+        const last = history[history.length-1].x;
+
+        const padding = (last-first)*0.05;
+
+        // Zooma ut så hela historiken syns
+        chart.options.scales.x.min = first - padding;
+        chart.options.scales.x.max = last + padding;
+    }
+
+    // Auto Y så allt syns
+    chart.options.scales.y.min = undefined;
+    chart.options.scales.y.max = undefined;
+
+    // Tillåt fri zoom/pan
+    chart.options.plugins.zoom.pan.enabled = true;
+    chart.options.plugins.zoom.zoom.wheel.enabled = true;
+    chart.options.plugins.zoom.zoom.pinch.enabled = true;
+}
+
+  
     chart.options.scales.y.beginAtZero = false; 
     chart.update('none'); 
 }

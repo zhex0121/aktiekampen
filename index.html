@@ -415,12 +415,12 @@ let priceFlashTimeout=null;
 
 const CHART_WINDOW_MS=20*60*1000;
 
-const MAX_CANDLES=120;
+const MAX_CANDLES=400;
 
 const CANDLE_MS=60000;
 const PRICE_UPDATE_MS=2000;
 
-function genereraStartCandles(aktie, antal=100){
+function genereraStartCandles(aktie, antal=300){
 
   let pris = aktie.pris;
   let nu = Date.now();
@@ -475,7 +475,7 @@ change:(Math.random()*4-2).toFixed(2)
 
 };
 
-genereraStartCandles(aktier[s],100);
+genereraStartCandles(aktier[s],300);
 
 });
 

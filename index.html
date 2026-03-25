@@ -19,6 +19,8 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+
 <style>
 
 :root{
@@ -222,6 +224,12 @@ margin-top:20px;
 
 }
 
+#portfolioDisplay{
+
+display:none;
+
+}
+
 .up{color:var(--up);}
 .down{color:var(--down);}
 .trade-error{
@@ -231,6 +239,144 @@ font-weight:700;
 margin-top:-10px;
 margin-bottom:10px;
 min-height:22px;
+}
+
+#accountBar{
+
+align-items:center;
+
+gap:10px;
+
+margin-bottom:12px;
+
+}
+
+.account-bar{
+
+display:flex;
+
+}
+
+.avatar-btn{
+
+width:40px;
+
+height:40px;
+
+border-radius:50%;
+
+background:#1e1e1e;
+
+border:1px solid var(--border);
+
+color:white;
+
+cursor:pointer;
+
+font-weight:bold;
+
+margin:0;
+
+}
+
+.avatar-btn:hover{
+
+border-color:var(--accent);
+
+}
+
+.account-email{
+
+flex:1;
+
+font-size:0.85rem;
+
+color:var(--text-dim);
+
+white-space:nowrap;
+
+overflow:hidden;
+
+text-overflow:ellipsis;
+
+}
+
+.small-btn{
+
+width:auto;
+
+padding:10px 12px;
+
+background:#1e1e1e;
+
+color:white;
+
+border:1px solid var(--border);
+
+border-radius:4px;
+
+cursor:pointer;
+
+font-weight:bold;
+
+margin-top:0;
+
+}
+
+.auth-modal{
+
+position:fixed;
+
+inset:0;
+
+background:rgba(0,0,0,0.6);
+
+display:flex;
+
+align-items:center;
+
+justify-content:center;
+
+z-index:9999;
+
+}
+
+.auth-card{
+
+width:min(440px,92vw);
+
+background:var(--surface);
+
+border:1px solid var(--border);
+
+border-radius:10px;
+
+padding:18px;
+
+}
+
+.auth-title{
+
+margin:0 0 12px 0;
+
+}
+
+.auth-actions{
+
+display:flex;
+
+gap:10px;
+
+margin-top:12px;
+
+}
+
+.auth-actions .btn{
+
+width:100%;
+
+margin-top:0;
+
 }
 
 </style>
@@ -309,6 +455,16 @@ Välj en aktie
 
 <div class="trade-side">
 
+<div id="accountBar" class="account-bar" style="display:none;">
+
+<button id="avatarBtn" class="avatar-btn" onclick="togglePortfolioView()" title="Portfolio"></button>
+
+<div id="accountEmail" class="account-email"></div>
+
+<button class="small-btn" onclick="handleLogout()">UTLOGGNING</button>
+
+</div>
+
 <div class="stat-box">
 
 <div style="color:var(--text-dim)">
@@ -383,6 +539,30 @@ PORTFÖLJ
 
 </div>
 
+<div id="authModal" class="auth-modal" style="display:flex;">
+
+<div class="auth-card">
+
+<h3 class="auth-title">登录 / 注册</h3>
+
+<input type="email" id="authEmail" placeholder="Email">
+
+<input type="password" id="authPassword" placeholder="Lösenord" style="margin-top:10px;">
+
+<div id="authError" class="trade-error"></div>
+
+<div class="auth-actions">
+
+<button class="btn btn-buy" onclick="signIn()">LOGIN</button>
+
+<button class="btn btn-sell" onclick="signUp()">REGISTRERA</button>
+
+</div>
+
+</div>
+
+</div>
+
 <script>
 
 const symboler=[
@@ -405,6 +585,304 @@ let saldo=100000;
 let portfölj={};
 
 let chart=null;
+
+const SUPABASE_URL='https://noofczjkampvgqtjqkaf.supabase.co';
+
+const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5vb2ZjemprYW1wdmdxdGpxa2FmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0MzM3NDcsImV4cCI6MjA5MDAwOTc0N30.0WDwZobgRdKx7yTPN9zWHe0Paa6-uQEEES5bSrwlSVM';
+
+const { createClient } = supabase;
+
+const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+let currentUser=null;
+
+let authReady=false;
+
+const STARTING_BALANCE=100000;
+
+function showAuthModal(show){
+
+document.getElementById('authModal').style.display = show ? 'flex' : 'none';
+
+}
+
+function showLoggedOutUI(){
+
+authReady=true;
+
+currentUser=null;
+
+showAuthModal(true);
+
+document.getElementById('accountBar').style.display='none';
+
+document.getElementById('tradeControls').style.display='none';
+
+document.getElementById('portfolioDisplay').style.display='none';
+
+document.getElementById('balanceDisplay').innerText='— SEK';
+
+}
+
+function syncTradeControlsVisibility(){
+
+if(currentUser && aktivAktie){
+
+document.getElementById('tradeControls').style.display = 'block';
+
+}else{
+
+document.getElementById('tradeControls').style.display = 'none';
+
+}
+
+}
+
+function showLoggedInUI(){
+
+authReady=true;
+
+showAuthModal(false);
+
+document.getElementById('accountBar').style.display='flex';
+
+document.getElementById('accountEmail').innerText = currentUser?.email || '';
+
+const first=(currentUser?.email||'?').trim()[0]?.toUpperCase() || '';
+
+document.getElementById('avatarBtn').innerText = first;
+
+document.getElementById('portfolioDisplay').style.display='none'; // avatar click toggles
+
+syncTradeControlsVisibility();
+
+}
+
+function setAuthError(msg){
+
+document.getElementById('authError').innerText = msg || '';
+
+}
+
+async function ensureProfileAndLoad(){
+
+const userId=currentUser.id;
+
+const { data: profile, error } = await supabaseClient
+  .from('profiles')
+  .select('balance, portfolio')
+  .eq('user_id', userId)
+  .maybeSingle();
+
+if(error) throw error;
+
+if(!profile){
+
+const { error: insertError } = await supabaseClient
+  .from('profiles')
+  .insert({
+    user_id: userId,
+    email: currentUser.email,
+    balance: STARTING_BALANCE,
+    portfolio: {}
+  });
+
+if(insertError) throw insertError;
+
+saldo = STARTING_BALANCE;
+
+portfölj = {};
+
+}else{
+
+saldo = Number(profile.balance ?? STARTING_BALANCE);
+
+const raw = profile.portfolio ?? {};
+
+// Only keep tickers that exist in this game (avoid rendering crashes)
+portfölj = {};
+
+Object.keys(raw).forEach(t=>{
+
+if(!aktier[t]) return;
+
+const v = raw[t] || {};
+
+portfölj[t] = {
+antal: Number(v.antal ?? 0),
+totaltInköp: Number(v.totaltInköp ?? 0),
+};
+
+});
+
+}
+
+uppdateraPortfölj();
+
+try{
+
+await sparaPortföljTillSupabase();
+
+}catch(e){
+
+document.getElementById('tradeError').innerText="保存失败";
+
+}
+
+}
+
+async function sparaPortföljTillSupabase(){
+
+if(!currentUser) return;
+
+const { error } = await supabaseClient
+  .from('profiles')
+  .upsert(
+    {
+      user_id: currentUser.id,
+      balance: saldo,
+      portfolio: portfölj,
+    },
+    { onConflict: 'user_id' }
+  );
+
+if(error) throw error;
+
+}
+
+function togglePortfolioView(){
+
+if(!currentUser){
+
+showAuthModal(true);
+
+return;
+
+}
+
+const el=document.getElementById('portfolioDisplay');
+
+el.style.display = (el.style.display==='none' || !el.style.display) ? 'block' : 'none';
+
+}
+
+async function handleLogout(){
+
+try{
+
+await supabaseClient.auth.signOut();
+
+}catch(e){
+
+// UI will be handled by auth state change
+
+}
+
+}
+
+async function signIn(){
+
+setAuthError('');
+
+const emailEl=document.getElementById('authEmail');
+
+const passEl=document.getElementById('authPassword');
+
+const email=(emailEl?.value||'').trim();
+
+const password=(passEl?.value||'').trim();
+
+if(!email || !password){
+
+setAuthError('请输入 Email 和密码');
+
+return;
+
+}
+
+const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+
+if(error){
+
+setAuthError(error.message);
+
+}
+
+}
+
+async function signUp(){
+
+setAuthError('');
+
+const emailEl=document.getElementById('authEmail');
+
+const passEl=document.getElementById('authPassword');
+
+const email=(emailEl?.value||'').trim();
+
+const password=(passEl?.value||'').trim();
+
+if(!email || !password){
+
+setAuthError('请输入 Email 和密码');
+
+return;
+
+}
+
+const { data, error } = await supabaseClient.auth.signUp({ email, password });
+
+if(error){
+
+setAuthError(error.message);
+
+return;
+
+}
+
+if(!data?.session){
+
+setAuthError('已注册：如果需要邮箱确认，请先在邮件里完成确认后再登录。');
+
+}
+
+}
+
+async function initSupabaseAuth(){
+
+showLoggedOutUI();
+
+const { data: { session } } = await supabaseClient.auth.getSession();
+
+if(session?.user){
+
+currentUser=session.user;
+
+showLoggedInUI();
+
+await ensureProfileAndLoad();
+
+}
+
+supabaseClient.auth.onAuthStateChange((_event, session)=>{
+
+if(session?.user){
+
+currentUser=session.user;
+
+showLoggedInUI();
+
+ensureProfileAndLoad().catch(console.error);
+
+}else{
+
+showLoggedOutUI();
+
+}
+
+});
+
+}
 
 let chartMode='live'; // live or history
 
@@ -523,8 +1001,11 @@ container.appendChild(div);
   
 function väljAktie(ticker){
     aktivAktie = ticker;
-
+    if(currentUser){
     document.getElementById('tradeControls').style.display = 'block';
+    }else{
+    document.getElementById('tradeControls').style.display = 'none';
+    }
     document.getElementById('activeSymbol').innerText = ticker;
 
     uppdateraAktiv();
@@ -875,7 +1356,17 @@ function updateChartView(){
 
   
   
-function genomförAffär(typ){
+async function genomförAffär(typ){
+
+if(!currentUser){
+
+document.getElementById('tradeError').innerText="请先登录";
+
+showAuthModal(true);
+
+return;
+
+}
 
 const råVärde=document.getElementById('tradeAmount').value.trim();
 
@@ -1100,6 +1591,7 @@ document.getElementById('searchInput').value
 
 
 /* Live pris */
+initSupabaseAuth();
 setInterval(()=>{
     let aktivRiktning=null;
     Object.keys(aktier).forEach(s=>{
@@ -1133,7 +1625,7 @@ setInterval(()=>{
     });
 
     uppdateraAktiv(aktivRiktning);
-    uppdateraPortfölj();
+    if(currentUser) uppdateraPortfölj();
 
   if(chart && aktivAktie){
 
@@ -1150,7 +1642,7 @@ updateChartView();
 renderStockList();
 
 // 2. Uppdatera portföljvisningen
-uppdateraPortfölj();
+if(currentUser) uppdateraPortfölj();
 
 // 3. Välj en aktie automatiskt (t.ex. Apple)
 // Detta kommer köra väljAktie -> initChart -> updateChartView (med 75%-logiken)

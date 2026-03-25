@@ -224,9 +224,6 @@ margin-top:20px;
 
 }
 
-#portfolioDisplay {
-    display: block; 
-}
 
 .up{color:var(--up);}
 .down{color:var(--down);}
@@ -239,20 +236,17 @@ margin-bottom:10px;
 min-height:22px;
 }
 
-#accountBar{
-
-align-items:center;
-
-gap:10px;
-
-margin-bottom:12px;
-
+#accountBar {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin-bottom: 15px;
 }
 
-.account-bar{
-
-display:flex;
-
+.account-main-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
 .avatar-btn{
@@ -375,6 +369,31 @@ margin-top:0;
 
 }
 
+
+
+#portfolioDisplay {
+    display: block !important; /* Alltid synlig */
+}
+
+
+/* Denna gömmer mailen initialt */
+#accountEmail {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    overflow: hidden;
+    max-height: 0; 
+    transition: max-height 0.3s ease-out, margin 0.3s;
+    word-break: break-all;
+    border-left: 2px solid var(--accent);
+    padding-left: 8px;
+}
+
+#accountEmail.show {
+    max-height: 50px;
+    margin-top: 5px;
+    margin-bottom: 5px;
+}
+    
 </style>
 
 </head>
@@ -452,15 +471,16 @@ Välj en aktie
 <div class="trade-side">
 
 <div id="accountBar" class="account-bar" style="display:none;">
-
-<button id="avatarBtn" class="avatar-btn" onclick="togglePortfolioView()" title="Portfolio"></button>
-
-<div id="accountEmail" class="account-email"></div>
-
-<button class="small-btn" onclick="handleLogout()">LOGGA UT</button>
-
+    <div class="account-main-row">
+        <button id="avatarBtn" class="avatar-btn" onclick="toggleEmailView()"></button>
+        <button class="small-btn" onclick="handleLogout()">LOGGA UT</button>
+    </div>
+    <div id="accountEmail" class="account-email"></div>
 </div>
 
+
+
+    
 <div class="stat-box">
 
 <div style="color:var(--text-dim)">
@@ -635,20 +655,32 @@ document.getElementById('tradeControls').style.display = 'none';
 }
 
 
+
+    
+    
+// Funktion för att visa/dölja bara e-posten
+function toggleEmailView() {
+    const emailEl = document.getElementById('accountEmail');
+    emailEl.classList.toggle('show');
+}
+
+
     
 function showLoggedInUI() {
     authReady = true;
     showAuthModal(false);
+    
     document.getElementById('accountBar').style.display = 'flex';
+    
+    document.getElementById('portfolioDisplay').style.display = 'block'; 
+
     document.getElementById('accountEmail').innerText = currentUser?.email || '';
     
     const first = (currentUser?.email || '?').trim()[0]?.toUpperCase() || '';
     document.getElementById('avatarBtn').innerText = first;
-    document.getElementById('portfolioDisplay').style.display = 'block'; 
 
     syncTradeControlsVisibility();
 }
-
 
 
 function setAuthError(msg){
@@ -743,21 +775,12 @@ if(error) throw error;
 
 }
 
-function togglePortfolioView(){
 
-if(!currentUser){
 
-showAuthModal(true);
 
-return;
 
-}
 
-const el=document.getElementById('portfolioDisplay');
-
-el.style.display = (el.style.display==='none' || !el.style.display) ? 'block' : 'none';
-
-}
+    
 
 async function handleLogout(){
 

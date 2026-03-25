@@ -790,20 +790,21 @@ if(error) throw error;
 
     
 
-async function handleLogout(){
-
-try{
-
-await supabaseClient.auth.signOut();
-
-}catch(e){
-
-// UI will be handled by auth state change
-
+async function handleLogout() {
+    try {
+        await supabaseClient.auth.signOut();
+        // Tvinga sidan att ladda om så att alla variabler nollställs
+        window.location.reload(); 
+    } catch (e) {
+        console.error("Logout failed", e);
+    }
 }
 
-}
 
+
+
+
+    
 async function signIn(){
 
 setAuthError('');
@@ -882,22 +883,37 @@ async function signUp() {
 
 
   
-async function initSupabaseAuth(){
+async function initSupabaseAuth() {
+    // 1. Lyssna på ALLA ändringar (inlogg, utlogg, password recovery etc)
+    supabaseClient.auth.onAuthStateChange((event, session) => {
+        console.log("Auth event:", event); // Bra för debugging
 
-showLoggedOutUI();
+        if (session?.user) {
+            currentUser = session.user;
+            showLoggedInUI();
+            ensureProfileAndLoad().catch(console.error);
+        } else {
+            // Här rensar vi UI:t direkt när Supabase säger att vi är utloggade
+            currentUser = null;
+            saldo = 100000;
+            portfölj = {};
+            showLoggedOutUI();
+        }
+    });
 
-const { data: { session } } = await supabaseClient.auth.getSession();
-
-if(session?.user){
-
-currentUser=session.user;
-
-showLoggedInUI();
-
-await ensureProfileAndLoad();
-
+    // 2. Kolla nuvarande status direkt vid start
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    if (!session) {
+        showLoggedOutUI();
+    }
 }
 
+
+
+
+
+
+    
 supabaseClient.auth.onAuthStateChange((_event, session)=>{
 
 if(session?.user){

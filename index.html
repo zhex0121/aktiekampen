@@ -853,44 +853,38 @@ async function signUp() {
 
   
 async function initSupabaseAuth(){
+    // Visa modalen direkt som utgångspunkt
+    showLoggedOutUI();
 
-showLoggedOutUI();
+    // 1. Kolla direkt om vi redan har en session (vid sidladdning)
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    if(session?.user){
+        currentUser = session.user;
+        showLoggedInUI();
+        ensureProfileAndLoad().catch(console.error);
+    }
 
-const { data: { session } } = await supabaseClient.auth.getSession();
+    // 2. Lyssna på ALLA förändringar dynamiskt
+    supabaseClient.auth.onAuthStateChange((event, session) => {
+        console.log("Auth Event:", event); // Bra för debugging
 
-if(session?.user){
+        if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'USER_UPDATED') && session?.user) {
+            currentUser = session.user;
+            showLoggedInUI();
+            ensureProfileAndLoad().catch(console.error);
+        }
 
-currentUser=session.user;
-
-showLoggedInUI();
-
-await ensureProfileAndLoad();
-
+        if (event === 'SIGNED_OUT') {
+            currentUser = null;
+            saldo = 100000; // Återställ lokalt saldo
+            portfölj = {};  // Töm lokal portfölj
+            showLoggedOutUI();
+        }
+    });
 }
 
-supabaseClient.auth.onAuthStateChange((event, session)=>{
 
-if(event === 'SIGNED_IN' && session?.user){
-
-currentUser=session.user;
-
-showLoggedInUI();
-
-ensureProfileAndLoad().catch(console.error);
-
-}
-
-if(event === 'SIGNED_OUT'){
-
-currentUser=null;
-
-showLoggedOutUI();
-
-}
-
-});
-
-}
+    
 
 let chartMode='live'; // live or history
 

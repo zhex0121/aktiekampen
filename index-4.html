@@ -710,7 +710,7 @@ async function fetchPrice(ticker) {
         const cleanTicker = ticker.split(' (')[1].replace(')', '');
         
         const response = await fetch(
-            `http://localhost:3000/api/price/${encodeURIComponent(cleanTicker)}`
+            `https://server-api-vxhy.onrender.com/api/price/${encodeURIComponent(cleanTicker)}`
         );
 
         const data = await response.json();

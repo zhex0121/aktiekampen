@@ -1132,20 +1132,7 @@ async function startLiveUpdates() {
     }, PRICE_UPDATE_MS);
 }
   
-// 1. Rendera listan först
-renderStockList();
 
-// 2. Uppdatera portföljvisningen
-uppdateraPortfölj();
-
-// 3. Välj en aktie automatiskt (t.ex. Apple)
-// Detta kommer köra väljAktie -> initChart -> updateChartView (med 75%-logiken)
-väljAktie("Berkshire Hathaway Inc (BRK-B)");
-
-// 4. Se till att Live-knappen lyser blått och systemet vet att vi är i live-mode
-setChartMode('live');
-
-// 5. Håll kvar din error-rensares lyssnare
 document.getElementById('tradeAmount').addEventListener('input', rensaTradeFel);
 
 

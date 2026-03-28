@@ -385,7 +385,8 @@ PORTFÖLJ
 <script>
 
 const symboler=[
-"Berkshire Hathaway Inc (BRK-B)",  "Apple Inc (AAPL)", "Goldman Sachs Group Inc (GS)"
+"S&P 500 ETF (SPY)", "Apple Inc (AAPL)", "Tesla Inc (TSLA)", "NVIDIA Corp (NVDA)", "Microsoft (MSFT)", "Spotify Tech (SPOT)", "Netflix Inc (NFLX)", "Meta Platforms (META)", "Advanced Micro Devices (AMD)", "Amazon (AMZN)", "MicroStrategy (MSTR)", "Bitcoin (BINANCE:BTCUSDT)"
+  
 ];
 
 let aktier={};
@@ -412,7 +413,7 @@ const CHART_WINDOW_MS=20*60*1000;
 const MAX_CANDLES=400;
 
 const CANDLE_MS=60000;
-const PRICE_UPDATE_MS=2000;
+const PRICE_UPDATE_MS=5000;
 
 function renderStockList(filter=""){
 

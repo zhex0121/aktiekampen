@@ -590,12 +590,16 @@ PORTFÖLJ
 <script>
 
 const symboler=[
-
-"Apple (AAPL)","Microsoft (MSFT)","Alphabet Inc (GOOGL)","Amazon (AMZN)","Nvidia (NVDA)","Tesla (TSLA)",
-"Meta (META)","Berkshire Hathaway Inc (BRK.B)","United Health Group (UNH)","Visa (V)","JPMorgan Chase & Co (JPM)",
-"Johnson & Johnson (JNJ)","Eli Lilly and Company (LLY)", "ExxonMobil Corp (XOM)","Walmart (WMT)","Mastercard (MA)",
-"Broadcom (AVGO)","Procter & Gamble (PG)","Oracle Corp (ORCL)","Adobe (ADBE)"
-
+    "Nvidia (NVDA)",
+    "Apple (AAPL)",
+    "Alphabet Inc (GOOG)",
+    "Microsoft (MSFT)",
+    "Amazon (AMZN)",
+    "Broadcom (AVGO)",
+    "Tesla (TSLA)",
+    "Meta (META)",
+    "Berkshire Hathaway (BRK.B)",
+    "Walmart (WMT)"
 ];
 
 let aktier={};
@@ -746,18 +750,13 @@ const raw = profile.portfolio ?? {};
 
 // Only keep tickers that exist in this game (avoid rendering crashes)
 portfölj = {};
-
-Object.keys(raw).forEach(t=>{
-
-if(!aktier[t]) return;
-
-const v = raw[t] || {};
-
-portfölj[t] = {
-antal: Number(v.antal ?? 0),
-totaltInköp: Number(v.totaltInköp ?? 0),
-};
-
+Object.keys(raw).forEach(t => {
+    if (!aktier[t]) return; // bara våra tio aktier
+    const v = raw[t] || {};
+    portfölj[t] = {
+        antal: Number(v.antal ?? 0),
+        totaltInköp: Number(v.totaltInköp ?? 0),
+    };
 });
 
 }

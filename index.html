@@ -912,41 +912,7 @@ const MAX_CANDLES=400;
 const CANDLE_MS=60000;
 const PRICE_UPDATE_MS=2000;
 
-function genereraStartCandles(aktie, antal=300){
 
-  let pris = aktie.pris;
-  let nu = Date.now();
-let startTid = nu - (antal*CANDLE_MS);
-pris = aktie.pris; // säkerställ riktigt startpris
-
-  for(let i=0;i<antal;i++){
-    let open = pris;
-    let high = open;
-    let low = open;
-    let close = open;
-
-    // Simulera varje 2s uppdatering inom denna 1-min candle
-    for(let t=PRICE_UPDATE_MS; t<=CANDLE_MS; t+=PRICE_UPDATE_MS){
-      let nyttPris = close * (1 + (Math.random()-0.5)*0.02); // samma som live update
-      close = nyttPris;
-      high = Math.max(high, nyttPris);
-      low = Math.min(low, nyttPris);
-    }
-
-    aktie.history.push({
-      x: startTid,
-      o: open,
-      h: high,
-      l: low,
-      c: close
-    });
-
-    pris = close;
-    startTid += CANDLE_MS;
-  }
-
-  aktie.pris = pris;
-}
   
 /* Init aktier */
 
@@ -1616,12 +1582,18 @@ setInterval(async () => {
         
 if (nyttPris === null) return;
 
-// Första riktiga priset → skapa history här istället
+// Första riktiga priset → skapa första candle
 if(aktie.history.length === 0){
 
     aktie.pris = nyttPris;
 
-    genereraStartCandles(aktie,300);
+    aktie.history.push({
+        x: Date.now(),
+        o: nyttPris,
+        h: nyttPris,
+        l: nyttPris,
+        c: nyttPris
+    });
 
     return;
 }
@@ -1673,7 +1645,7 @@ if(currentUser) uppdateraPortfölj();
 
 // 3. Välj en aktie automatiskt (t.ex. Apple)
 // Detta kommer köra väljAktie -> initChart -> updateChartView (med 75%-logiken)
-väljAktie("Apple (AAPL)");
+setTimeout(()=>väljAktie("Apple (AAPL)"),1000);
 
 // 4. Se till att Live-knappen lyser blått och systemet vet att vi är i live-mode
 setChartMode('live');

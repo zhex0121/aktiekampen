@@ -415,7 +415,7 @@ margin-top:0;
 <input
 type="text"
 id="searchInput"
-placeholder="Sök aktie..."
+placeholder="Sök..."
 oninput="filtreraAktier()">
 
 </div>
@@ -502,7 +502,7 @@ id="balanceDisplay"
 style="font-size:1.5rem;
 font-weight:bold;">
 
-100 000 SEK
+100 000 USD
 
 </div>
 
@@ -590,12 +590,19 @@ PORTFÖLJ
 <script>
 
 const symboler=[
-
-"Apple (AAPL)","Microsoft (MSFT)","Alphabet Inc (GOOGL)","Amazon (AMZN)","Nvidia (NVDA)","Tesla (TSLA)",
-"Meta (META)","Berkshire Hathaway Inc (BRK.B)","United Health Group (UNH)","Visa (V)","JPMorgan Chase & Co (JPM)",
-"Johnson & Johnson (JNJ)","Eli Lilly and Company (LLY)", "ExxonMobil Corp (XOM)","Walmart (WMT)","Mastercard (MA)",
-"Broadcom (AVGO)","Procter & Gamble (PG)","Oracle Corp (ORCL)","Adobe (ADBE)"
-
+    
+    "S&P 500 ETF (SPY)",
+    "Nvidia (NVDA)",
+    "Apple (AAPL)",
+    "Alphabet Inc (GOOG)",
+    "Microsoft (MSFT)",
+    "Amazon (AMZN)",
+    "Broadcom (AVGO)",
+    "Tesla (TSLA)",
+    "Meta (META)",
+    "Berkshire Hathaway (BRK.B)",
+    "Walmart (WMT)",
+    "Bitcoin (BINANCE:BTCUSDT)"
 ];
 
 let aktier={};
@@ -622,6 +629,24 @@ let currentUser=null;
 
 let authReady=false;
 
+async function fetchPrice(ticker) {
+  try {
+    const cleanTicker = ticker.split(' (')[1].replace(')', '');
+    const response = await fetch(`https://server-api-092b.onrender.com/api/price/${encodeURIComponent(cleanTicker)}`);
+
+    if (!response.ok) return null; 
+
+    const data = await response.json();
+    const price = Number(data.c);
+
+    if (!Number.isFinite(price)) return null;
+    return price;
+  } catch (err) {
+    console.error("API error for", ticker, err);
+    return null;
+  }
+}
+    
 const STARTING_BALANCE=100000;
 
 function showAuthModal(show){
@@ -644,7 +669,7 @@ document.getElementById('tradeControls').style.display='none';
 
 document.getElementById('portfolioDisplay').style.display='none';
 
-document.getElementById('balanceDisplay').innerText='— SEK';
+document.getElementById('balanceDisplay').innerText='— USD';
 
 }
 
@@ -734,18 +759,13 @@ const raw = profile.portfolio ?? {};
 
 // Only keep tickers that exist in this game (avoid rendering crashes)
 portfölj = {};
-
-Object.keys(raw).forEach(t=>{
-
-if(!aktier[t]) return;
-
-const v = raw[t] || {};
-
-portfölj[t] = {
-antal: Number(v.antal ?? 0),
-totaltInköp: Number(v.totaltInköp ?? 0),
-};
-
+Object.keys(raw).forEach(t => {
+    if (!aktier[t]) return; // bara våra tio aktier
+    const v = raw[t] || {};
+    portfölj[t] = {
+        antal: Number(v.antal ?? 0),
+        totaltInköp: Number(v.totaltInköp ?? 0),
+    };
 });
 
 }
@@ -898,104 +918,83 @@ const CHART_WINDOW_MS=20*60*1000;
 const MAX_CANDLES=400;
 
 const CANDLE_MS=60000;
-const PRICE_UPDATE_MS=2000;
+const PRICE_UPDATE_MS=5000;
 
-function genereraStartCandles(aktie, antal=300){
 
-  let pris = aktie.pris;
-  let nu = Date.now();
-  let startTid = nu - (antal*CANDLE_MS);
-
-  for(let i=0;i<antal;i++){
-    let open = pris;
-    let high = open;
-    let low = open;
-    let close = open;
-
-    // Simulera varje 2s uppdatering inom denna 1-min candle
-    for(let t=PRICE_UPDATE_MS; t<=CANDLE_MS; t+=PRICE_UPDATE_MS){
-      let nyttPris = close * (1 + (Math.random()-0.5)*0.02); // samma som live update
-      close = nyttPris;
-      high = Math.max(high, nyttPris);
-      low = Math.min(low, nyttPris);
-    }
-
-    aktie.history.push({
-      x: startTid,
-      o: open,
-      h: high,
-      l: low,
-      c: close
-    });
-
-    pris = close;
-    startTid += CANDLE_MS;
-  }
-
-  aktie.pris = pris;
-}
   
 /* Init aktier */
 
-symboler.forEach(s=>{
+symboler.forEach(s => {
+    let category = "Stocks";
+    if (s.includes("S&P 500")) category = "Index";
+    if (s.includes("Bitcoin")) category = "Crypto";
 
-let basPris=Math.random()*2000+50;
-
-aktier[s]={
-
-ticker:s,
-
-pris:basPris,
-
-history:[],
-
-chartSessionStart:null,
-
-change:(Math.random()*4-2).toFixed(2)
-
-};
-
-genereraStartCandles(aktier[s],300);
-
+    aktier[s] = {
+        ticker: s,
+        pris: 0,
+        history: [],
+        chartSessionStart: null,
+        change: (Math.random() * 4 - 2).toFixed(2),
+        category: category
+    };
 });
 
-function renderStockList(filter=""){
 
-const container=document.getElementById('stockList');
 
-container.innerHTML="";
+    function renderStockList(filter = "") {
+    const container = document.getElementById('stockList');
+    container.innerHTML = "";
 
-const sökord = filter.toLowerCase();
+    const sökord = filter.toLowerCase();
 
-Object.keys(aktier)
-    .filter(s => {
-        if (sökord === "") return true;
-        const namn = s.split(' (')[0].toLowerCase();
-        const ticker = s.split(' (')[1].replace(')', '').toLowerCase();
-        return namn.startsWith(sökord) || ticker.startsWith(sökord);
-    })
+    // Gruppera aktier efter kategori
+    const categories = { "Index": [], "Aktier": [], "Krypto": [] };
 
-.forEach(s=>{
+    Object.keys(aktier)
+        .filter(s => {
+            if (sökord === "") return true;
+            const namn = s.split(' (')[0].toLowerCase();
+            const ticker = s.split(' (')[1].replace(')', '').toLowerCase();
+            return namn.startsWith(sökord) || ticker.startsWith(sökord);
+        })
+        .forEach(s => {
+            let cat = aktier[s].category;
+            if (cat === "Stocks") cat = "Aktier";
+            if (cat === "Crypto") cat = "Krypto";
+            if (cat === "Index") cat = "Index";
+            categories[cat].push(s);
+        });
 
-const div=document.createElement('div');
+    // Rendera varje kategori
+    for (const cat of ["Index", "Aktier", "Krypto"]) {
+        if (categories[cat].length === 0) continue;
 
-div.className=
-`stock-item ${aktivAktie===s?'active':''}`;
+        // Rubrik för kategori
+        const heading = document.createElement('div');
+        heading.style.padding = '8px 15px';
+        heading.style.fontWeight = 'bold';
+        heading.style.color = 'var(--accent)'; // accent-färg för rubriker
+        heading.style.background = 'var(--surface)';
+        heading.style.borderBottom = '1px solid var(--border)';
+        heading.style.position = 'sticky';
+        heading.style.top = '0';
+        heading.style.zIndex = '5';
+        heading.innerText = cat;
+        container.appendChild(heading);
 
-div.onclick=()=>väljAktie(s);
-
-div.innerHTML =
-`<div><b>${s}</b></div>
-<div>
-${aktier[s].pris.toFixed(2)}
-</div>`;
-
-container.appendChild(div);
-
-});
-
+        // Aktie-element
+        categories[cat].forEach(s => {
+            const div = document.createElement('div');
+            div.className = `stock-item ${aktivAktie === s ? 'active' : ''}`;
+            div.onclick = () => väljAktie(s);
+            div.innerHTML = `
+                <div><b>${s}</b></div>
+                <div>${aktier[s].pris.toFixed(2)}</div>
+            `;
+            container.appendChild(div);
+        });
+    }
 }
-
 
 
 
@@ -1032,7 +1031,7 @@ const s=aktier[aktivAktie];
 
 const priceEl=document.getElementById('activePrice');
 
-priceEl.innerText=s.pris.toFixed(2)+" SEK";
+priceEl.innerText=s.pris.toFixed(2)+" USD";
 priceEl.classList.remove('up','down');
 
 if(riktning==='up'||riktning==='down'){
@@ -1479,7 +1478,7 @@ document.getElementById('balanceDisplay')
 saldo.toLocaleString(
 'sv-SE',
 {minimumFractionDigits:2}
-)+" SEK";
+)+" USD";
 
 const container=
 document.getElementById('portfolioDisplay');
@@ -1537,7 +1536,7 @@ ${s} (${antal} st)
 
 <span>
 
-${värde.toFixed(0)} kr
+${värde.toFixed(0)} USD
 
 </span>
 
@@ -1550,7 +1549,7 @@ margin-top:4px;
 ">
 
 Snittpris:
-${snitt.toFixed(2)} kr
+${snitt.toFixed(2)} USD
 
 </div>
 
@@ -1567,7 +1566,7 @@ Resultat:
 
 ${resultat>=0?'+':''}
 
-${resultat.toFixed(0)} kr
+${resultat.toFixed(0)} USD
 
 (${procent.toFixed(2)}%)
 
@@ -1591,29 +1590,54 @@ document.getElementById('searchInput').value
 
 }
 
-
 /* Live pris */
 initSupabaseAuth();
-setInterval(()=>{
-    let aktivRiktning=null;
-    Object.keys(aktier).forEach(s=>{
-        let aktie = aktier[s];
-        let gammaltPris = aktie.pris;
-        let nyttPris = gammaltPris * (1 + (Math.random()-0.5)*0.01);
-        aktie.pris = nyttPris;
-        if(s===aktivAktie){
-            if(nyttPris>gammaltPris) aktivRiktning='up';
-            else if(nyttPris<gammaltPris) aktivRiktning='down';
-            else aktivRiktning=null;
+setInterval(async () => {
+    let aktivRiktning = null;
+    
+    // Vi skapar en lista av löften (promises) för att hämta alla priser samtidigt
+    const promises = Object.keys(aktier).map(async (s) => {
+        const aktie = aktier[s];
+        const gammaltPris = aktie.pris;
+        const nyttPris = await fetchPrice(s); // HÄMTAR RIKTIGT PRIS
+        if (nyttPris === null) {
+    console.warn("Ingen prisdata för", s);
+    return;
+    }
+        
+if (nyttPris === null) return;
+
+// Första riktiga priset → skapa första candle
+if(aktie.history.length === 0){
+
+    aktie.pris = nyttPris;
+
+    aktie.history.push({
+        x: Date.now(),
+        o: nyttPris,
+        h: nyttPris,
+        l: nyttPris,
+        c: nyttPris
+    });
+
+    return;
+}
+
+aktie.pris = nyttPris;
+
+        
+        if (s === aktivAktie) {
+            if (nyttPris > gammaltPris) aktivRiktning = 'up';
+            else if (nyttPris < gammaltPris) aktivRiktning = 'down';
         }
 
-        // Uppdatera candlestick
+        // Uppdatera candlestick (samma logik som innan men med riktigt pris)
         let nu = Date.now();
-        let senasteCandle = aktie.history[aktie.history.length-1];
-        if(nu - senasteCandle.x < CANDLE_MS){
+        let senasteCandle = aktie.history[aktie.history.length - 1];
+        if (nu - senasteCandle.x < CANDLE_MS) {
             senasteCandle.c = nyttPris;
-            senasteCandle.h = Math.max(senasteCandle.h, senasteCandle.o, senasteCandle.c);
-            senasteCandle.l = Math.min(senasteCandle.l, senasteCandle.o, senasteCandle.c);
+            senasteCandle.h = Math.max(senasteCandle.h, nyttPris);
+            senasteCandle.l = Math.min(senasteCandle.l, nyttPris);
         } else {
             aktie.history.push({
                 x: nu,
@@ -1622,23 +1646,21 @@ setInterval(()=>{
                 l: Math.min(senasteCandle.c, nyttPris),
                 c: nyttPris
             });
-            if(aktie.history.length > MAX_CANDLES) aktie.history.shift();
+            if (aktie.history.length > MAX_CANDLES) aktie.history.shift();
         }
     });
 
+    await Promise.all(promises); // Vänta på att alla priser hämtats
+
     uppdateraAktiv(aktivRiktning);
-    if(currentUser) uppdateraPortfölj();
-
-  if(chart && aktivAktie){
-
-updateChartView();
-
-}
-
-    // Uppdatera sidopanelen automatiskt utan färg
+    if (currentUser) uppdateraPortfölj();
+    if (chart && aktivAktie) updateChartView();
     renderStockList(document.getElementById('searchInput').value);
 
 }, PRICE_UPDATE_MS);
+
+
+    
   
 // 1. Rendera listan först
 renderStockList();
@@ -1648,7 +1670,7 @@ if(currentUser) uppdateraPortfölj();
 
 // 3. Välj en aktie automatiskt (t.ex. Apple)
 // Detta kommer köra väljAktie -> initChart -> updateChartView (med 75%-logiken)
-väljAktie("Apple (AAPL)");
+setTimeout(()=>väljAktie("Apple (AAPL)"),1000);
 
 // 4. Se till att Live-knappen lyser blått och systemet vet att vi är i live-mode
 setChartMode('live');

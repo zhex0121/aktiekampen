@@ -916,7 +916,8 @@ function genereraStartCandles(aktie, antal=300){
 
   let pris = aktie.pris;
   let nu = Date.now();
-  let startTid = nu - (antal*CANDLE_MS);
+let startTid = nu - (antal*CANDLE_MS);
+pris = aktie.pris; // säkerställ riktigt startpris
 
   for(let i=0;i<antal;i++){
     let open = pris;
@@ -967,7 +968,6 @@ change:(Math.random()*4-2).toFixed(2)
 
 };
 
-genereraStartCandles(aktier[s],300);
 
 });
 
@@ -1614,9 +1614,21 @@ setInterval(async () => {
         const gammaltPris = aktie.pris;
         const nyttPris = await fetchPrice(s); // HÄMTAR RIKTIGT PRIS
         
-        if (nyttPris === null) return;
+if (nyttPris === null) return;
 
-        aktie.pris = nyttPris;
+// Första riktiga priset → skapa history här istället
+if(aktie.history.length === 0){
+
+    aktie.pris = nyttPris;
+
+    genereraStartCandles(aktie,300);
+
+    return;
+}
+
+aktie.pris = nyttPris;
+
+        
         if (s === aktivAktie) {
             if (nyttPris > gammaltPris) aktivRiktning = 'up';
             else if (nyttPris < gammaltPris) aktivRiktning = 'down';

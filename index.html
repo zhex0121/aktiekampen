@@ -502,7 +502,7 @@ id="balanceDisplay"
 style="font-size:1.5rem;
 font-weight:bold;">
 
-100 000 SEK
+10 000,00 USD 
 
 </div>
 
@@ -965,7 +965,7 @@ div.onclick=()=>väljAktie(s);
 div.innerHTML =
 `<div><b>${s}</b></div>
 <div>
-${aktier[s].pris.toFixed(2)}
+$${aktier[s].pris.toFixed(2)}
 </div>`;
 
 container.appendChild(div);
@@ -1010,7 +1010,7 @@ const s=aktier[aktivAktie];
 
 const priceEl=document.getElementById('activePrice');
 
-priceEl.innerText=s.pris.toFixed(2)+" SEK";
+priceEl.innerText=s.pris.toFixed(2)+" USD";
 priceEl.classList.remove('up','down');
 
 if(riktning==='up'||riktning==='down'){
@@ -1457,7 +1457,7 @@ document.getElementById('balanceDisplay')
 saldo.toLocaleString(
 'sv-SE',
 {minimumFractionDigits:2}
-)+" SEK";
+)+" USD";
 
 const container=
 document.getElementById('portfolioDisplay');
@@ -1515,7 +1515,7 @@ ${s} (${antal} st)
 
 <span>
 
-${värde.toFixed(0)} kr
+$${värde.toFixed(0)}
 
 </span>
 
@@ -1528,7 +1528,7 @@ margin-top:4px;
 ">
 
 Snittpris:
-${snitt.toFixed(2)} kr
+$${snitt.toFixed(2)}
 
 </div>
 
@@ -1545,7 +1545,7 @@ Resultat:
 
 ${resultat>=0?'+':''}
 
-${resultat.toFixed(0)} kr
+$${resultat.toFixed(0)}
 
 (${procent.toFixed(2)}%)
 

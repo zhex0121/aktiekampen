@@ -1584,6 +1584,10 @@ setInterval(async () => {
         const aktie = aktier[s];
         const gammaltPris = aktie.pris;
         const nyttPris = await fetchPrice(s); // HÄMTAR RIKTIGT PRIS
+        if (nyttPris === null) {
+    console.warn("Ingen prisdata för", s);
+    return;
+    }
         
 if (nyttPris === null) return;
 

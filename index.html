@@ -633,6 +633,34 @@ async function fetchPrice(ticker) {
         return null;
     }
 }
+
+function isMarketOpen() {
+    const now = new Date();
+    // Konvertera lokal tid till New York tid (EST/EDT)
+    const nyTime = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'America/New_York',
+        hour: 'numeric',
+        minute: 'numeric',
+        hour12: false,
+        weekday: 'short'
+    }).formatToParts(now);
+
+    const parts = {};
+    nyTime.forEach(p => parts[p.type] = p.value);
+
+    const hour = parseInt(parts.hour);
+    const minute = parseInt(parts.minute);
+    const day = parts.weekday; // Mon, Tue, etc.
+
+    const isWeekend = (day === 'Sat' || day === 'Sun');
+    const timeValue = hour * 100 + minute;
+
+    // Öppet 09:30 (930) till 16:00 (1600) New York tid
+    const isOpenTime = timeValue >= 930 && timeValue <= 1600;
+
+    return !isWeekend && isOpenTime;
+}
+
     
 const STARTING_BALANCE=100000;
 
@@ -946,31 +974,36 @@ function genereraStartCandles(aktie, antal=300){
 
   aktie.pris = pris;
 }
-  
+
 /* Init aktier */
+async function initieraAllaAktier() {
+    for (const s of symboler) {
+        // Hämta ett första riktigt pris så vi slipper jättehopp i grafen
+        let startPris = await fetchPrice(s) || 150; 
 
-symboler.forEach(s=>{
+        aktier[s] = {
+            ticker: s,
+            pris: startPris,
+            history: [],
+            chartSessionStart: null,
+            change: 0
+        };
 
-let basPris=0
+        // Skapa historik baserat på det riktiga priset
+        genereraStartCandles(aktier[s], 300);
+    }
+    
+    // Efter att priser är laddade, kör igång UI
+    renderStockList();
+    väljAktie("Apple (AAPL)");
+    setChartMode('live');
+}
 
-aktier[s]={
+// Starta initieringen
+initieraAllaAktier();
 
-ticker:s,
 
-pris:basPris,
-
-history:[],
-
-chartSessionStart:null,
-
-change:(Math.random()*4-2).toFixed(2)
-
-};
-
-genereraStartCandles(aktier[s],300);
-
-});
-
+    
 function renderStockList(filter=""){
 
 const container=document.getElementById('stockList');
@@ -1625,19 +1658,27 @@ setInterval(async () => {
         // Uppdatera candlestick (samma logik som innan men med riktigt pris)
         let nu = Date.now();
         let senasteCandle = aktie.history[aktie.history.length - 1];
+      // Inuti din loop:
         if (nu - senasteCandle.x < CANDLE_MS) {
             senasteCandle.c = nyttPris;
             senasteCandle.h = Math.max(senasteCandle.h, nyttPris);
             senasteCandle.l = Math.min(senasteCandle.l, nyttPris);
         } else {
-            aktie.history.push({
-                x: nu,
-                o: senasteCandle.c,
-                h: Math.max(senasteCandle.c, nyttPris),
-                l: Math.min(senasteCandle.c, nyttPris),
-                c: nyttPris
-            });
-            if (aktie.history.length > MAX_CANDLES) aktie.history.shift();
+            // Skapa bara en ny candle om marknaden är öppen
+            if (isMarketOpen()) {
+                aktier[s].history.push({
+                    x: nu,
+                    o: senasteCandle.c,
+                    h: Math.max(senasteCandle.c, nyttPris),
+                    l: Math.min(senasteCandle.c, nyttPris),
+                    c: nyttPris
+                });
+                if (aktie.history.length > MAX_CANDLES) aktie.history.shift();
+            } else {
+                // Om stängt: Uppdatera bara sista priset på den befintliga candlen 
+                // så att linjen/priset i listan fortfarande stämmer med API:et
+                senasteCandle.c = nyttPris;
+            }
         }
     });
 
@@ -1653,15 +1694,12 @@ setInterval(async () => {
 
     
   
-// 1. Rendera listan först
-renderStockList();
+
 
 // 2. Uppdatera portföljvisningen
 if(currentUser) uppdateraPortfölj();
 
-// 3. Välj en aktie automatiskt (t.ex. Apple)
-// Detta kommer köra väljAktie -> initChart -> updateChartView (med 75%-logiken)
-väljAktie("Apple (AAPL)");
+
 
 // 4. Se till att Live-knappen lyser blått och systemet vet att vi är i live-mode
 setChartMode('live');

@@ -502,7 +502,7 @@ id="balanceDisplay"
 style="font-size:1.5rem;
 font-weight:bold;">
 
- 
+100 000 USD
 
 </div>
 
@@ -634,7 +634,7 @@ async function fetchPrice(ticker) {
     }
 }
     
-const STARTING_BALANCE=10000;
+const STARTING_BALANCE=100000;
 
 function showAuthModal(show){
 
@@ -965,7 +965,7 @@ div.onclick=()=>väljAktie(s);
 div.innerHTML =
 `<div><b>${s}</b></div>
 <div>
-${aktier[s].pris.toFixed(2)} USD
+${aktier[s].pris.toFixed(2)}
 </div>`;
 
 container.appendChild(div);
@@ -1454,10 +1454,10 @@ document.getElementById('balanceDisplay')
 
 .innerText=
 
-saldo.toLocaleString('en-US',{
-minimumFractionDigits:2,
-maximumFractionDigits:2
-})+" USD";
+saldo.toLocaleString(
+'sv-SE',
+{minimumFractionDigits:2}
+)+" USD";
 
 const container=
 document.getElementById('portfolioDisplay');

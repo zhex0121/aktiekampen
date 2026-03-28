@@ -656,7 +656,7 @@ document.getElementById('tradeControls').style.display='none';
 
 document.getElementById('portfolioDisplay').style.display='none';
 
-document.getElementById('balanceDisplay').innerText='— SEK';
+document.getElementById('balanceDisplay').innerText='— USD';
 
 }
 
@@ -1454,10 +1454,10 @@ document.getElementById('balanceDisplay')
 
 .innerText=
 
-saldo.toLocaleString(
-'sv-SE',
-{minimumFractionDigits:2}
-).toFixed(0)+" USD";
+saldo.toLocaleString('en-US',{
+minimumFractionDigits:2,
+maximumFractionDigits:2
+})+" USD";
 
 const container=
 document.getElementById('portfolioDisplay');

@@ -1,1664 +1,293 @@
-
 <!DOCTYPE html>
 <html lang="sv">
 <head>
-
-<meta charset="UTF-8">
-
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>PaperAlpha</title>
-
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
-
-<script src="https://cdn.jsdelivr.net/npm/chartjs-chart-financial"></script>
-
-<script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8/hammer.min.js"></script>
-
-<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
-
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-
-<style>
-
-:root{
-
---bg:#050505;
---surface:#121212;
---border:#282828;
---accent:#2962ff;
---up:#00ffaa;
---down:#ff3d71;
---text:#ffffff;
---text-dim:#b3b3b3;
-
-}
-
-body{
-
-font-family:'Inter',-apple-system,sans-serif;
-
-background:var(--bg);
-
-color:var(--text);
-
-margin:0;
-
-display:grid;
-
-grid-template-columns:350px 1fr 300px;
-
-height:100vh;
-
-overflow:hidden;
-
-}
-
-.market-side{
-
-display:grid;
-
-grid-template-rows:auto 1fr;
-
-height:100vh;
-
-background:var(--surface);
-
-border-right:1px solid var(--border);
-
-}
-
-.search-box{
-
-padding:15px;
-
-border-bottom:1px solid var(--border);
-
-}
-
-input{
-
-width:100%;
-
-background:#1e1e1e;
-
-border:1px solid var(--border);
-
-padding:10px;
-
-color:white;
-
-border-radius:4px;
-
-box-sizing:border-box;
-
-}
-
-.stock-list{
-
-overflow-y:auto;
-
-scrollbar-width:thin;
-
-scrollbar-color:var(--accent) transparent;
-
-padding-right:5px;
-
-}
-
-.stock-item{
-
-padding:12px 15px;
-
-border-bottom:1px solid var(--border);
-
-cursor:pointer;
-
-display:flex;
-
-justify-content:space-between;
-
-transition:background 0.2s;
-
-}
-
-.stock-item:hover{
-
-background:#1a1a1a;
-
-}
-
-.stock-item.active{
-
-background:#222;
-
-border-left:3px solid var(--accent);
-
-}
-
-.main-content{
-
-display:flex;
-
-flex-direction:column;
-
-padding:20px;
-
-background:var(--bg);
-
-overflow:hidden;
-
-}
-
-.chart-container{
-
-flex-grow:1;
-
-position:relative;
-
-min-height:0;
-
-}
-
-.trade-side {
-    position: relative; 
-    border-left: 1px solid var(--border);
-    padding: 20px;
-    background: var(--surface);
-}
-
-.logout-btn {
-    position: absolute;
-    top: 15px;    /* Distance from top */
-    right: 20px;  /* Distance from right edge */
-    margin: 0;    /* Remove any default margins */
-    z-index: 10;  /* Ensure it stays on top */
-}
-    
-.stat-box{
-
-margin-bottom:20px;
-
-padding-bottom:20px;
-
-border-bottom:1px solid var(--border);
-
-}
-
-.btn{
-
-width:100%;
-
-padding:12px;
-
-border:none;
-
-border-radius:4px;
-
-font-weight:bold;
-
-cursor:pointer;
-
-margin-top:10px;
-
-}
-
-.btn-buy{
-
-background:var(--up);
-
-color:black;
-
-}
-
-.btn-sell{
-
-background:var(--down);
-
-color:white;
-
-}
-
-.portfolio-list{
-
-font-size:0.85rem;
-
-margin-top:20px;
-
-}
-
-
-.up{color:var(--up);}
-.down{color:var(--down);}
-.trade-error{
-color:var(--down);
-font-size:0.95rem;
-font-weight:700;
-margin-top:-10px;
-margin-bottom:10px;
-min-height:22px;
-}
-
-#accountBar {
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-    margin-bottom: 15px;
-}
-
-.account-main-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    min-height: 40px; /* Keeps space consistent */
-}
-
-.avatar-btn{
-
-width:40px;
-
-height:40px;
-
-border-radius:50%;
-
-background:#1e1e1e;
-
-border:1px solid var(--border);
-
-color:white;
-
-cursor:pointer;
-
-font-weight:bold;
-
-margin:0;
-
-}
-
-.avatar-btn:hover{
-
-border-color:var(--accent);
-
-}
-
-.account-email{
-
-flex:1;
-
-font-size:0.85rem;
-
-color:var(--text-dim);
-
-white-space:nowrap;
-
-overflow:hidden;
-
-text-overflow:ellipsis;
-
-}
-
-.small-btn{
-
-width:auto;
-
-padding:10px 12px;
-
-background:#1e1e1e;
-
-color:white;
-
-border:1px solid var(--border);
-
-border-radius:4px;
-
-cursor:pointer;
-
-font-weight:bold;
-
-margin-top:0;
-
-}
-
-.auth-modal {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.85); /* Lite mörkare för bättre fokus */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 9999;
-    backdrop-filter: blur(4px); /* Snygg suddig bakgrund */
-}
-
-.auth-card {
-    width: min(400px, 92vw);
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 30px; /* Mer luft! */
-    box-shadow: 0 20px 40px rgba(0,0,0,0.4);
-}
-
-.auth-title {
-    margin: 0 0 25px 0;
-    text-align: center;
-    font-size: 1.5rem;
-    letter-spacing: 1px;
-}
-
-/* Fixar avståndet för felmeddelandet så det inte ligger på inputfälten */
-#authError {
-    margin: 15px 0;
-    min-height: 20px;
-    text-align: center;
-    font-size: 0.85rem;
-}
-
-
-.auth-actions{
-
-display:flex;
-
-gap:10px;
-
-margin-top:12px;
-
-}
-
-.auth-actions .btn{
-
-width:100%;
-
-margin-top:0;
-
-}
-
-
-
-#portfolioDisplay {
-    display: block !important; /* Alltid synlig */
-}
-
-
-/* Denna gömmer mailen initialt */
-#accountEmail {
-    font-size: 0.8rem;
-    color: var(--text-dim);
-    overflow: hidden;
-    max-height: 0; 
-    transition: max-height 0.3s ease-out, margin 0.3s;
-    word-break: break-all;
-    border-left: 2px solid var(--accent);
-    padding-left: 8px;
-}
-
-#accountEmail.show {
-    max-height: 50px;
-    margin-top: 5px;
-    margin-bottom: 5px;
-}
-
-
-    
-</style>
-
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PaperAlpha Live</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-financial"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8/hammer.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+    <style>
+        :root{
+            --bg:#050505; --surface:#121212; --border:#282828; --accent:#2962ff;
+            --up:#00ffaa; --down:#ff3d71; --text:#ffffff; --text-dim:#b3b3b3;
+        }
+        body{
+            font-family:'Inter',sans-serif; background:var(--bg); color:var(--text);
+            margin:0; display:grid; grid-template-columns:350px 1fr 300px; height:100vh; overflow:hidden;
+        }
+        .market-side{ display:grid; grid-template-rows:auto 1fr; background:var(--surface); border-right:1px solid var(--border); }
+        .search-box{ padding:15px; border-bottom:1px solid var(--border); }
+        input{ width:100%; background:#1e1e1e; border:1px solid var(--border); padding:10px; color:white; border-radius:4px; }
+        .stock-list{ overflow-y:auto; padding-right:5px; }
+        .stock-item{ padding:12px 15px; border-bottom:1px solid var(--border); cursor:pointer; display:flex; justify-content:space-between; }
+        .stock-item.active{ background:#222; border-left:3px solid var(--accent); }
+        .main-content{ display:flex; flex-direction:column; padding:20px; }
+        .chart-container{ flex-grow:1; position:relative; min-height:0; }
+        .trade-side { position: relative; border-left: 1px solid var(--border); padding: 20px; background: var(--surface); }
+        .logout-btn { position: absolute; top: 15px; right: 20px; }
+        .btn{ width:100%; padding:12px; border:none; border-radius:4px; font-weight:bold; cursor:pointer; margin-top:10px; }
+        .btn-buy{ background:var(--up); color:black; }
+        .btn-sell{ background:var(--down); color:white; }
+        .up{color:var(--up);} .down{color:var(--down);}
+        .trade-error{ color:var(--down); font-size:0.95rem; font-weight:700; margin-bottom:10px; min-height:22px; }
+        .auth-modal { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.85); display: flex; align-items: center; justify-content: center; z-index: 9999; backdrop-filter: blur(4px); }
+        .auth-card { width: min(400px, 92vw); background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 30px; }
+        .avatar-btn{ width:40px; height:40px; border-radius:50%; background:#1e1e1e; border:1px solid var(--border); color:white; cursor:pointer; }
+    </style>
 </head>
-
 <body>
 
 <div class="market-side">
-
-<div class="search-box">
-
-<input
-type="text"
-id="searchInput"
-placeholder="Sök aktie..."
-oninput="filtreraAktier()">
-
-</div>
-
-<div
-class="stock-list"
-id="stockList">
-
-</div>
-
+    <div class="search-box"><input type="text" id="searchInput" placeholder="Sök aktie..." oninput="filtreraAktier()"></div>
+    <div class="stock-list" id="stockList"></div>
 </div>
 
 <div class="main-content">
-
-<div style="margin-bottom:10px;">
-
-<button class="btn"
-style="width:auto;background:#1e1e1e;color:white;margin-right:5px;"
-onclick="setChartMode('live')"
-id="liveBtn">
-
-REALTID
-
-</button>
-
-<button class="btn"
-style="width:auto;background:#1e1e1e;color:white;"
-onclick="setChartMode('history')"
-id="historyBtn">
-
-HISTORISKT
-
-</button>
-
-</div>
-  
-<div>
-
-<h2 id="activeSymbol">
-
-Välj en aktie
-
-</h2>
-
-<h1 id="activePrice">
-
-0.00
-
-</h1>
-
-</div>
-
-<div class="chart-container">
-
-<canvas id="mainChart"></canvas>
-
-</div>
-
+    <div style="margin-bottom:10px;">
+        <button class="btn" style="width:auto;background:#1e1e1e;color:white;" onclick="setChartMode('live')" id="liveBtn">REALTID</button>
+        <button class="btn" style="width:auto;background:#1e1e1e;color:white;" onclick="setChartMode('history')" id="historyBtn">HISTORISKT</button>
+    </div>
+    <div>
+        <h2 id="activeSymbol">Välj en aktie</h2>
+        <h1 id="activePrice">0.00</h1>
+    </div>
+    <div class="chart-container"><canvas id="mainChart"></canvas></div>
 </div>
 
 <div class="trade-side">
-
-<div id="accountBar" class="account-bar" style="display:none;">
-    <div class="account-main-row">
-        <button id="avatarBtn" class="avatar-btn" onclick="toggleEmailView()"></button>
-        <button class="small-btn logout-btn" onclick="handleLogout()">LOGGA UT</button>
+    <div id="accountBar" style="display:none; margin-bottom:15px;">
+        <button id="avatarBtn" class="avatar-btn"></button>
+        <button class="btn logout-btn" style="width:auto; padding:5px 10px;" onclick="handleLogout()">LOGOUT</button>
     </div>
-    <div id="accountEmail" class="account-email"></div>
+    <div class="stat-box">
+        <div style="color:var(--text-dim)">Saldo</div>
+        <div id="balanceDisplay" style="font-size:1.5rem; font-weight:bold;">100 000 SEK</div>
+    </div>
+    <div id="tradeControls" style="display:none;">
+        <label style="font-size:0.8rem; color:var(--text-dim)">ANTAL</label>
+        <input type="number" id="tradeAmount" value="1" min="1">
+        <div id="tradeError" class="trade-error"></div>
+        <button class="btn btn-buy" onclick="genomförAffär('köp')">KÖP</button>
+        <button class="btn btn-sell" onclick="genomförAffär('sälj')">SÄLJ</button>
+    </div>
+    <div class="portfolio-list" id="portfolioDisplay"><h4>PORTFÖLJ</h4></div>
 </div>
 
-
-
-    
-<div class="stat-box">
-
-<div style="color:var(--text-dim)">
-
-Tillgängligt saldo
-
-</div>
-
-<div
-id="balanceDisplay"
-style="font-size:1.5rem;
-font-weight:bold;">
-
-100 000 SEK
-
-</div>
-
-</div>
-
-<div
-id="tradeControls"
-style="display:none;">
-
-<label
-style="font-size:0.8rem;
-color:var(--text-dim)">
-
-ANTAL
-
-</label>
-
-<input
-type="number"
-id="tradeAmount"
-value="1"
-min="1"
-style="margin:10px 0 20px 0;">
-
-<div id="tradeError" class="trade-error"></div>
-
-<button
-class="btn btn-buy"
-onclick="genomförAffär('köp')">
-
-KÖP
-
-</button>
-
-<button
-class="btn btn-sell"
-onclick="genomförAffär('sälj')">
-
-SÄLJ
-
-</button>
-
-</div>
-
-<div
-class="portfolio-list"
-id="portfolioDisplay">
-
-<h4
-style="border-bottom:1px solid var(--border);
-padding-bottom:5px;">
-
-PORTFÖLJ
-
-</h4>
-
-</div>
-
-</div>
-
-<div id="authModal" class="auth-modal" style="display:flex;">
-
-<div class="auth-card">
-
-<h3 class="auth-title">PaperAlpha</h3>
-
-<input type="email" id="authEmail" placeholder="Email">
-
-<input type="password" id="authPassword" placeholder="Lösenord" style="margin-top:10px;">
-
-<div id="authError" class="trade-error"></div>
-
-<div class="auth-actions">
-
-<button class="btn btn-buy" onclick="signIn()">LOGGA IN</button>
-
-<button class="btn btn-sell" onclick="signUp()">REGISTRERA</button>
-
-</div>
-
-</div>
-
+<div id="authModal" class="auth-modal">
+    <div class="auth-card">
+        <h3 style="text-align:center">PaperAlpha</h3>
+        <input type="email" id="authEmail" placeholder="Email">
+        <input type="password" id="authPassword" placeholder="Lösenord" style="margin-top:10px;">
+        <div id="authError" class="trade-error" style="margin-top:10px;"></div>
+        <button class="btn btn-buy" onclick="signIn()">LOGGA IN</button>
+        <button class="btn btn-sell" onclick="signUp()">REGISTRERA</button>
+    </div>
 </div>
 
 <script>
-
-const symboler=[
-
-"Apple (AAPL)","Microsoft (MSFT)","Alphabet Inc (GOOGL)","Amazon (AMZN)","Nvidia (NVDA)","Tesla (TSLA)",
-"Meta (META)","Berkshire Hathaway Inc (BRK.B)","United Health Group (UNH)","Visa (V)","JPMorgan Chase & Co (JPM)",
-"Johnson & Johnson (JNJ)","Eli Lilly and Company (LLY)", "ExxonMobil Corp (XOM)","Walmart (WMT)","Mastercard (MA)",
-"Broadcom (AVGO)","Procter & Gamble (PG)","Oracle Corp (ORCL)","Adobe (ADBE)"
-
-];
-
-let aktier={};
-
-let liveAutoScrollEnabled = true; // true when we want LIVE to auto pan
-  
-let aktivAktie=null;
-
-let saldo=100000;
-
-let portfölj={};
-
-let chart=null;
-
+/* --- CONFIG & STATE --- */
 const SUPABASE_URL='https://noofczjkampvgqtjqkaf.supabase.co';
-
 const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5vb2ZjemprYW1wdmdxdGpxa2FmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0MzM3NDcsImV4cCI6MjA5MDAwOTc0N30.0WDwZobgRdKx7yTPN9zWHe0Paa6-uQEEES5bSrwlSVM';
-
 const { createClient } = supabase;
-
 const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-let currentUser=null;
+const symboler = ["AAPL", "MSFT", "GOOGL", "AMZN", "NVDA", "TSLA", "META", "SPOT", "NFLX", "MSTR"];
+let aktier = {};
+let aktivAktie = null;
+let saldo = 100000;
+let portfölj = {};
+let chart = null;
+let chartMode = 'live';
+let liveAutoScrollEnabled = true;
+let currentUser = null;
+const CANDLE_MS = 60000;
+const PRICE_UPDATE_MS = 5000;
 
-let authReady=false;
-
-const STARTING_BALANCE=100000;
-
-function showAuthModal(show){
-
-document.getElementById('authModal').style.display = show ? 'flex' : 'none';
-
+/* --- API LOGIC --- */
+async function fetchPrice(ticker) {
+    try {
+        const response = await fetch(`https://server-api-092b.onrender.com/api/price/${ticker}`);
+        if (!response.ok) return null;
+        const data = await response.json();
+        return Number(data.c);
+    } catch (e) { return null; }
 }
 
-function showLoggedOutUI(){
-
-authReady=true;
-
-currentUser=null;
-
-showAuthModal(true);
-
-document.getElementById('accountBar').style.display='none';
-
-document.getElementById('tradeControls').style.display='none';
-
-document.getElementById('portfolioDisplay').style.display='none';
-
-document.getElementById('balanceDisplay').innerText='— SEK';
-
-}
-
-function syncTradeControlsVisibility(){
-
-if(currentUser && aktivAktie){
-
-document.getElementById('tradeControls').style.display = 'block';
-
-}else{
-
-document.getElementById('tradeControls').style.display = 'none';
-
-}
-
-}
-
-
-
-    
-    
-// Funktion för att visa/dölja bara e-posten
-function toggleEmailView() {
-    const emailEl = document.getElementById('accountEmail');
-    emailEl.classList.toggle('show');
-}
-
-
-    
-function showLoggedInUI() {
-    authReady = true;
-    showAuthModal(false);
-    
-    document.getElementById('accountBar').style.display = 'flex';
-    
-    document.getElementById('portfolioDisplay').style.display = 'block'; 
-
-    document.getElementById('accountEmail').innerText = currentUser?.email || '';
-    
-    const first = (currentUser?.email || '?').trim()[0]?.toUpperCase() || '';
-    document.getElementById('avatarBtn').innerText = first;
-
-    syncTradeControlsVisibility();
-}
-
-
-function setAuthError(msg){
-
-document.getElementById('authError').innerText = msg || '';
-
-}
-
-async function ensureProfileAndLoad(){
-
-const userId=currentUser.id;
-
-const { data: profile, error } = await supabaseClient
-  .from('profiles')
-  .select('balance, portfolio')
-  .eq('user_id', userId)
-  .maybeSingle();
-
-if(error) throw error;
-
-if(!profile){
-
-const { error: insertError } = await supabaseClient
-  .from('profiles')
-  .insert({
-    user_id: userId,
-    email: currentUser.email,
-    balance: STARTING_BALANCE,
-    portfolio: {}
-  });
-
-if(insertError) throw insertError;
-
-saldo = STARTING_BALANCE;
-
-portfölj = {};
-
-}else{
-
-saldo = Number(profile.balance ?? STARTING_BALANCE);
-
-const raw = profile.portfolio ?? {};
-
-// Only keep tickers that exist in this game (avoid rendering crashes)
-portfölj = {};
-
-Object.keys(raw).forEach(t=>{
-
-if(!aktier[t]) return;
-
-const v = raw[t] || {};
-
-portfölj[t] = {
-antal: Number(v.antal ?? 0),
-totaltInköp: Number(v.totaltInköp ?? 0),
-};
-
-});
-
-}
-
-uppdateraPortfölj();
-
-try{
-
-await sparaPortföljTillSupabase();
-
-}catch(e){
-
-document.getElementById('tradeError').innerText="Det gick inte att spara";
-
-}
-
-}
-
-async function sparaPortföljTillSupabase(){
-
-if(!currentUser) return;
-
-const { error } = await supabaseClient
-  .from('profiles')
-  .upsert(
-    {
-      user_id: currentUser.id,
-      balance: saldo,
-      portfolio: portfölj,
-    },
-    { onConflict: 'user_id' }
-  );
-
-if(error) throw error;
-
-}
-
-
-
-
-
-
-    
-
-async function handleLogout(){
-    try{
-        await supabaseClient.auth.signOut();
-
-        // Tvinga logout UI direkt
-        currentUser = null;
-        showLoggedOutUI();
-
-    }catch(e){
-        console.error(e);
-    }
-}
-
-
-async function signIn() {
-    setAuthError('');
-    const email = document.getElementById('authEmail').value.trim();
-    const password = document.getElementById('authPassword').value.trim();
-
-    if (!email || !password) {
-        setAuthError('Vänligen fyll i både e-post och lösenord.');
-        return;
-    }
-
-    const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
-    if (error) {
-        // Gör Supabase felmeddelanden lite mer användarvänliga om man vill, 
-        // annars funkar error.message
-        setAuthError('Fel e-post eller lösenord. Försök igen!');
-    }
-}
-
-
-
-  
-async function signUp() {
-    setAuthError('');
-    const email = document.getElementById('authEmail').value.trim();
-    const password = document.getElementById('authPassword').value.trim();
-
-    if (!email || !password) {
-        setAuthError('Du måste fylla i e-post och lösenord för att skapa konto.');
-        return;
-    }
-
-    const { data, error } = await supabaseClient.auth.signUp({ email, password });
-    
-    if (error) {
-        setAuthError('Kunde inte skapa konto: ' + error.message);
-        return;
-    }
-
-    if (!data?.session) {
-        setAuthError('Kontot finns redan. Prova att logga in istället!');
-    }
-}
-
-
-
-
-
-  
-async function initSupabaseAuth(){
-    // Visa modalen direkt som utgångspunkt
-    showLoggedOutUI();
-
-    // 1. Kolla direkt om vi redan har en session (vid sidladdning)
-    const { data: { session } } = await supabaseClient.auth.getSession();
-    if(session?.user){
-        currentUser = session.user;
-        showLoggedInUI();
-        ensureProfileAndLoad().catch(console.error);
-    }
-
-    // 2. Lyssna på ALLA förändringar dynamiskt
-    supabaseClient.auth.onAuthStateChange((event, session) => {
-        console.log("Auth Event:", event); // Bra för debugging
-
-        if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'USER_UPDATED') && session?.user) {
-            currentUser = session.user;
-            showLoggedInUI();
-            ensureProfileAndLoad().catch(console.error);
-        }
-
-        if (event === 'SIGNED_OUT') {
-            currentUser = null;
-            saldo = 100000; // Återställ lokalt saldo
-            portfölj = {};  // Töm lokal portfölj
-            showLoggedOutUI();
-        }
-    });
-}
-
-
-    
-
-let chartMode='live'; // live or history
-
-const LIVE_CANDLES=30;
-
-  
-let priceFlashTimeout=null;
-
-const CHART_WINDOW_MS=20*60*1000;
-
-const MAX_CANDLES=400;
-
-const CANDLE_MS=60000;
-const PRICE_UPDATE_MS=2000;
-
-function genereraStartCandles(aktie, antal=300){
-
-  let pris = aktie.pris;
-  let nu = Date.now();
-  let startTid = nu - (antal*CANDLE_MS);
-
-  for(let i=0;i<antal;i++){
-    let open = pris;
-    let high = open;
-    let low = open;
-    let close = open;
-
-    // Simulera varje 2s uppdatering inom denna 1-min candle
-    for(let t=PRICE_UPDATE_MS; t<=CANDLE_MS; t+=PRICE_UPDATE_MS){
-      let nyttPris = close * (1 + (Math.random()-0.5)*0.02); // samma som live update
-      close = nyttPris;
-      high = Math.max(high, nyttPris);
-      low = Math.min(low, nyttPris);
-    }
-
-    aktie.history.push({
-      x: startTid,
-      o: open,
-      h: high,
-      l: low,
-      c: close
-    });
-
-    pris = close;
-    startTid += CANDLE_MS;
-  }
-
-  aktie.pris = pris;
-}
-  
-/* Init aktier */
-
-symboler.forEach(s=>{
-
-let basPris=Math.random()*2000+50;
-
-aktier[s]={
-
-ticker:s,
-
-pris:basPris,
-
-history:[],
-
-chartSessionStart:null,
-
-change:(Math.random()*4-2).toFixed(2)
-
-};
-
-genereraStartCandles(aktier[s],300);
-
-});
-
-function renderStockList(filter=""){
-
-const container=document.getElementById('stockList');
-
-container.innerHTML="";
-
-const sökord = filter.toLowerCase();
-
-Object.keys(aktier)
-    .filter(s => {
-        if (sökord === "") return true;
-        const namn = s.split(' (')[0].toLowerCase();
-        const ticker = s.split(' (')[1].replace(')', '').toLowerCase();
-        return namn.startsWith(sökord) || ticker.startsWith(sökord);
-    })
-
-.forEach(s=>{
-
-const div=document.createElement('div');
-
-div.className=
-`stock-item ${aktivAktie===s?'active':''}`;
-
-div.onclick=()=>väljAktie(s);
-
-div.innerHTML =
-`<div><b>${s}</b></div>
-<div>
-${aktier[s].pris.toFixed(2)}
-</div>`;
-
-container.appendChild(div);
-
-});
-
-}
-
-
-
-
-
-  
-function väljAktie(ticker){
-    aktivAktie = ticker;
-    if(currentUser){
-    document.getElementById('tradeControls').style.display = 'block';
-    }else{
-    document.getElementById('tradeControls').style.display = 'none';
-    }
-    document.getElementById('activeSymbol').innerText = ticker;
-
-    uppdateraAktiv();
-    
-    // Se till att vi kör updateChartView så fort charten skapas i initChart
-    initChart(); 
-
-    renderStockList(document.getElementById('searchInput').value);
-}
-
-
-
-
-
-
-  
-function uppdateraAktiv(riktning=null){
-
-if(!aktivAktie)return;
-
-const s=aktier[aktivAktie];
-
-const priceEl=document.getElementById('activePrice');
-
-priceEl.innerText=s.pris.toFixed(2)+" SEK";
-priceEl.classList.remove('up','down');
-
-if(riktning==='up'||riktning==='down'){
-priceEl.classList.add(riktning);
-if(priceFlashTimeout){
-clearTimeout(priceFlashTimeout);
-}
-priceFlashTimeout=setTimeout(()=>{
-priceEl.classList.remove('up','down');
-},700);
-}
-
-}
-
-function visaTradeFel(){
-document.getElementById('tradeError').innerText="Gör om, gör rätt!";
-}
-
-function rensaTradeFel(){
-document.getElementById('tradeError').innerText="";
-}
-
-function sättDiagramTidsfönster(){
-
-if(!chart||!aktivAktie)return;
-
-const s=aktier[aktivAktie];
-
-if(!s.history.length)return;
-
-if(!s.chartSessionStart)s.chartSessionStart=s.history[0].x;
-
-const nu=Date.now();
-
-const start=s.chartSessionStart;
-
-if(typeof chart.resetZoom==='function')chart.resetZoom();
-
-if(nu<=start+CHART_WINDOW_MS){
-
-chart.options.scales.x.min=start;
-
-chart.options.scales.x.max=start+CHART_WINDOW_MS;
-
-}else{
-
-chart.options.scales.x.min=nu-CHART_WINDOW_MS;
-
-chart.options.scales.x.max=nu;
-
-}
-
-}
-
-function initChart(){
-
-const ctx=
-document.getElementById('mainChart')
-.getContext('2d');
-
-if(chart) chart.destroy();
-
-chart=new Chart(ctx,{
-
-type:'candlestick',
-
-data:{
-
-datasets:[{
-
-data:aktier[aktivAktie].history,
-
-color:{
-up:'#00ffaa',
-down:'#ff3d71',
-unchanged:'#00ffaa'
-}
-
-}]
-
-},
-
-options:{
-
-responsive:true,
-
-maintainAspectRatio:false,
-
-animation:false,
-
-plugins:{
-legend:{display:false},
-tooltip:{
-enabled:true,
-displayColors:false,
-intersect:true,
-mode:'nearest',
-callbacks:{
-title:()=>'',
-label:function(ctx){
-
-const r=ctx.raw||ctx.parsed;
-
-if(!r)return'';
-
-const c=r.c!==undefined?r.c:r.close;
-
-if(c===undefined)return'';
-
-return Number(c).toFixed(2);
-
-}
-}
-},
-zoom:{
-pan:{
-enabled:true,
-mode:'xy'
-},
-zoom:{
-wheel:{enabled:true},
-pinch:{enabled:true},
-mode:'xy'
-}
-}
-},
-
-scales:{
-
-x:{
-type:'time',
-time:{
-unit:'minute',
-minUnit:'minute',
-tooltipFormat:'dd/MM HH:mm',
-displayFormats:{minute:'HH:mm'}
-},
-grid:{color:'#1a1a1a'},
-ticks:{
-color:'#666',
-maxRotation:0,
-autoSkip:true,
-maxTicksLimit:5,
-autoSkipPadding:28,
-callback:function(value,index,ticks){
-
-const d=new Date(value);
-
-const label=d.toLocaleTimeString('sv-SE',{
-hour:'2-digit',
-minute:'2-digit',
-hour12:false
-});
-
-if(index>0&&ticks&&ticks[index-1]){
-
-const prev=new Date(ticks[index-1].value);
-
-const prevLabel=prev.toLocaleTimeString('sv-SE',{
-hour:'2-digit',
-minute:'2-digit',
-hour12:false
-});
-
-if(label===prevLabel)return '';
-
-}
-
-return label;
-
-}
-}
-},
-
-y:{
-grid:{color:'#1a1a1a'},
-ticks:{color:'#666'},
-grace:'5%'
-}
-
-}
-
-}
-
-});
-
-chart.options.plugins.zoom.onPan = function() {
-    if(chartMode === 'live'){
-        liveAutoScrollEnabled = false; // user manually moved chart
-    }
-};
-chart.options.plugins.zoom.onZoom = function() {
-    if(chartMode === 'live'){
-        liveAutoScrollEnabled = false; // user manually zoomed
-    }
-};
-
-// VIKTIGT: Anropa updateChartView direkt här för att sätta 75%-vyn innan ritning
-    updateChartView();
-}
-
-
-
-
-  
-function setChartMode(mode){
-    chartMode = mode;
-
-    document.getElementById('liveBtn').style.background =
-        mode==='live' ? '#2962ff' : '#1e1e1e';
-    document.getElementById('historyBtn').style.background =
-        mode==='history' ? '#2962ff' : '#1e1e1e';
-
-    liveAutoScrollEnabled = (mode === 'live');
-
-    // AUTO ZOOM ONLY WHEN SWITCHING MODE
-    if(mode === 'history' && chart && aktivAktie){
-
-        const history = aktier[aktivAktie].history;
-
-        if(typeof chart.resetZoom === 'function'){
-            chart.resetZoom();
-        }
-
-        if(history.length){
-            const first = history[0].x;
-            const last = history[history.length-1].x;
-
-            const padding = (last-first)*0.05;
-
-            chart.options.scales.x.min = first - padding;
-            chart.options.scales.x.max = last + padding;
-
-            chart.options.scales.y.min = undefined;
-            chart.options.scales.y.max = undefined;
-
-            chart.update('none');
-        }
-    }
-
-if(mode === 'history' && chart && aktivAktie){
-
-    const history = aktier[aktivAktie].history;
-
-    if(typeof chart.resetZoom === 'function'){
-        chart.resetZoom();
-    }
-
-    if(history.length){
-        const first = history[0].x;
-        const last = history[history.length-1].x;
-
-        const padding = (last-first)*0.05;
-
-        chart.options.scales.x.min = first - padding;
-        chart.options.scales.x.max = last + padding;
-
-        chart.options.scales.y.min = undefined;
-        chart.options.scales.y.max = undefined;
-
-        chart.update('none');
-    }
-}
-  
-    updateChartView();
-}
-  
-
-  
-function updateChartView(){
-    if(!chart || !aktivAktie) return;
-
-    const history = aktier[aktivAktie].history;
-
-    if(chartMode === 'live'){
-        chart.data.datasets[0].data = history; 
-
-        if(liveAutoScrollEnabled && history.length){
-            const newest = history[history.length - 1].x;
-            const viewWindow = 30 * 60 * 1000; 
-            const rightPadding = viewWindow * 0.33;
-
-            chart.options.scales.x.min = newest - (viewWindow - rightPadding);
-            chart.options.scales.x.max = newest + rightPadding;
-
-            // Vertikal centrering
-            const visibleCandles = history.filter(c => c.x >= chart.options.scales.x.min);
-            if(visibleCandles.length > 0) {
-                const highs = visibleCandles.map(c => c.h);
-                const lows = visibleCandles.map(c => c.l);
-                const maxPrice = Math.max(...highs);
-                const minPrice = Math.min(...lows);
-                const margin = (maxPrice - minPrice) * 0.2;
-
-                chart.options.scales.y.min = minPrice - margin;
-                chart.options.scales.y.max = maxPrice + margin;
+async function startLiveUpdates() {
+    setInterval(async () => {
+        let direction = null;
+        for (let s of symboler) {
+            const oldP = aktier[s].pris;
+            const newP = await fetchPrice(s);
+            if (newP) {
+                aktier[s].pris = newP;
+                if (s === aktivAktie) direction = newP > oldP ? 'up' : 'down';
+                
+                // Update Candle
+                let now = Date.now();
+                let last = aktier[s].history[aktier[s].history.length-1];
+                if (!last || now - last.x >= CANDLE_MS) {
+                    aktier[s].history.push({ x: now, o: newP, h: newP, l: newP, c: newP });
+                } else {
+                    last.c = newP;
+                    last.h = Math.max(last.h, newP);
+                    last.l = Math.min(last.l, newP);
+                }
             }
         }
-
-        // --- HÄR LÅSER VI LIVE-LÄGET ---
-        chart.options.plugins.zoom.pan.enabled = false;
-        chart.options.plugins.zoom.zoom.wheel.enabled = false;
-        chart.options.plugins.zoom.zoom.pinch.enabled = false;
-
-
-      
-   } else {
-
-    chart.data.datasets[0].data = history;
-
-    // Tillåt fri zoom/pan
-    chart.options.plugins.zoom.pan.enabled = true;
-    chart.options.plugins.zoom.zoom.wheel.enabled = true;
-    chart.options.plugins.zoom.zoom.pinch.enabled = true;
-
-}
-  
-    chart.options.scales.y.beginAtZero = false; 
-    chart.update('none'); 
+        uppdateraAktivUI(direction);
+        renderStockList(document.getElementById('searchInput').value);
+        if (chartMode === 'live') updateChartView();
+    }, PRICE_UPDATE_MS);
 }
 
-
-
-  
-  
-async function genomförAffär(typ){
-
-if(!currentUser){
-
-document.getElementById('tradeError').innerText="Vänligen logga in först!";
-
-showAuthModal(true);
-
-return;
-
+/* --- UI & CHART --- */
+function renderStockList(filter="") {
+    const container = document.getElementById('stockList');
+    container.innerHTML = "";
+    symboler.filter(s => s.toLowerCase().includes(filter.toLowerCase())).forEach(s => {
+        const div = document.createElement('div');
+        div.className = `stock-item ${aktivAktie === s ? 'active' : ''}`;
+        div.onclick = () => väljAktie(s);
+        div.innerHTML = `<b>${s}</b> <span>${aktier[s].pris.toFixed(2)}</span>`;
+        container.appendChild(div);
+    });
 }
 
-const råVärde=document.getElementById('tradeAmount').value.trim();
-
-if(!aktivAktie||!/^\d+$/.test(råVärde)){
-
-visaTradeFel();
-
-return;
-
+function väljAktie(ticker) {
+    aktivAktie = ticker;
+    document.getElementById('activeSymbol').innerText = ticker;
+    if (currentUser) document.getElementById('tradeControls').style.display = 'block';
+    initChart();
 }
 
-let antal=parseInt(råVärde,10);
-
-if(isNaN(antal)||antal<=0){
-
-visaTradeFel();
-
-return;
-
-}
-
-const pris=aktier[aktivAktie].pris;
-
-const kostnad=pris*antal;
-
-if(typ==='köp'){
-
-if(saldo>=kostnad){
-
-saldo-=kostnad;
-
-if(!portfölj[aktivAktie]){
-
-portfölj[aktivAktie]={
-
-antal:0,
-
-totaltInköp:0
-
-};
-
-}
-
-portfölj[aktivAktie].antal+=antal;
-
-portfölj[aktivAktie].totaltInköp+=kostnad;
-
-rensaTradeFel();
-
-}
-
-else{
-
-visaTradeFel();
-
-return;
-}
-
-}
-
-if(typ==='sälj'){
-
-if(
-portfölj[aktivAktie] &&
-portfölj[aktivAktie].antal>=antal
-){
-
-const snitt=
-
-portfölj[aktivAktie].totaltInköp/
-portfölj[aktivAktie].antal;
-
-saldo+=kostnad;
-
-portfölj[aktivAktie].antal-=antal;
-
-portfölj[aktivAktie].totaltInköp-=snitt*antal;
-
-if(portfölj[aktivAktie].antal===0){
-
-delete portfölj[aktivAktie];
-
-}
-
-rensaTradeFel();
-
-}
-
-else{
-
-visaTradeFel();
-
-return;
-}
-
-}
-
-uppdateraPortfölj();
-
-}
-
-function uppdateraPortfölj(){
-
-document.getElementById('balanceDisplay')
-
-.innerText=
-
-saldo.toLocaleString(
-'sv-SE',
-{minimumFractionDigits:2}
-)+" SEK";
-
-const container=
-document.getElementById('portfolioDisplay');
-
-container.innerHTML=
-
-'<h4 style="border-bottom:1px solid var(--border); padding-bottom:5px;">PORTFÖLJ</h4>';
-
-for(let s in portfölj){
-
-const antal=portfölj[s].antal;
-
-const snitt=
-
-portfölj[s].totaltInköp/antal;
-
-const värde=
-
-antal*aktier[s].pris;
-
-const resultat=
-
-värde-portfölj[s].totaltInköp;
-
-const procent=
-
-(resultat/portfölj[s].totaltInköp)*100;
-
-container.innerHTML+=`
-
-<div style="
-margin-bottom:12px;
-padding-bottom:10px;
-border-bottom:1px solid #1a1a1a;
-">
-
-<div style="
-display:flex;
-justify-content:space-between;
-font-weight:bold;
-">
-
-<span 
-style="
-cursor:pointer;
-color:#2962ff;
-text-decoration:none;
-"
-onclick="väljAktie('${s}')"
-onmouseover="this.style.textDecoration='underline'"
-onmouseout="this.style.textDecoration='none'"
->
-${s} (${antal} st)
-</span>
-
-<span>
-
-${värde.toFixed(0)} kr
-
-</span>
-
-</div>
-
-<div style="
-font-size:0.75rem;
-color:var(--text-dim);
-margin-top:4px;
-">
-
-Snittpris:
-${snitt.toFixed(2)} kr
-
-</div>
-
-<div class="${
-resultat>=0?'up':'down'
-}"
-
-style="
-font-size:0.75rem;
-margin-top:2px;
-">
-
-Resultat:
-
-${resultat>=0?'+':''}
-
-${resultat.toFixed(0)} kr
-
-(${procent.toFixed(2)}%)
-
-</div>
-
-</div>
-
-`;
-
-}
-
-}
-
-function filtreraAktier(){
-
-renderStockList(
-
-document.getElementById('searchInput').value
-
-);
-
-}
-
-
-/* Live pris */
-initSupabaseAuth();
-setInterval(()=>{
-    let aktivRiktning=null;
-    Object.keys(aktier).forEach(s=>{
-        let aktie = aktier[s];
-        let gammaltPris = aktie.pris;
-        let nyttPris = gammaltPris * (1 + (Math.random()-0.5)*0.01);
-        aktie.pris = nyttPris;
-        if(s===aktivAktie){
-            if(nyttPris>gammaltPris) aktivRiktning='up';
-            else if(nyttPris<gammaltPris) aktivRiktning='down';
-            else aktivRiktning=null;
-        }
-
-        // Uppdatera candlestick
-        let nu = Date.now();
-        let senasteCandle = aktie.history[aktie.history.length-1];
-        if(nu - senasteCandle.x < CANDLE_MS){
-            senasteCandle.c = nyttPris;
-            senasteCandle.h = Math.max(senasteCandle.h, senasteCandle.o, senasteCandle.c);
-            senasteCandle.l = Math.min(senasteCandle.l, senasteCandle.o, senasteCandle.c);
-        } else {
-            aktie.history.push({
-                x: nu,
-                o: senasteCandle.c,
-                h: Math.max(senasteCandle.c, nyttPris),
-                l: Math.min(senasteCandle.c, nyttPris),
-                c: nyttPris
-            });
-            if(aktie.history.length > MAX_CANDLES) aktie.history.shift();
+function initChart() {
+    const ctx = document.getElementById('mainChart').getContext('2d');
+    if (chart) chart.destroy();
+    chart = new Chart(ctx, {
+        type: 'candlestick',
+        data: { datasets: [{ data: aktier[aktivAktie].history, color: { up: '#00ffaa', down: '#ff3d71' } }] },
+        options: {
+            responsive: true, maintainAspectRatio: false, animation: false,
+            scales: { x: { type: 'time', time: { unit: 'minute' } } },
+            plugins: { zoom: { pan: { enabled: true }, zoom: { wheel: { enabled: true } } } }
         }
     });
-
-    uppdateraAktiv(aktivRiktning);
-    if(currentUser) uppdateraPortfölj();
-
-  if(chart && aktivAktie){
-
-updateChartView();
-
 }
 
-    // Uppdatera sidopanelen automatiskt utan färg
-    renderStockList(document.getElementById('searchInput').value);
+function updateChartView() {
+    if (!chart || !aktivAktie) return;
+    chart.data.datasets[0].data = aktier[aktivAktie].history;
+    const last = aktier[aktivAktie].history[aktier[aktivAktie].history.length-1];
+    if (last && liveAutoScrollEnabled) {
+        chart.options.scales.x.max = last.x + 300000;
+        chart.options.scales.x.min = last.x - 900000;
+    }
+    chart.update('none');
+}
 
-}, PRICE_UPDATE_MS);
-  
-// 1. Rendera listan först
-renderStockList();
+function uppdateraAktivUI(dir) {
+    const el = document.getElementById('activePrice');
+    el.innerText = aktier[aktivAktie].pris.toFixed(2) + " USD";
+    el.className = dir || "";
+    setTimeout(() => el.className = "", 700);
+}
 
-// 2. Uppdatera portföljvisningen
-if(currentUser) uppdateraPortfölj();
+/* --- AUTH & SUPABASE --- */
+async function initSupabaseAuth() {
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    if (session) handleLoginSuccess(session.user);
+    
+    supabaseClient.auth.onAuthStateChange((event, session) => {
+        if (event === 'SIGNED_IN') handleLoginSuccess(session.user);
+        if (event === 'SIGNED_OUT') location.reload();
+    });
+}
 
-// 3. Välj en aktie automatiskt (t.ex. Apple)
-// Detta kommer köra väljAktie -> initChart -> updateChartView (med 75%-logiken)
-väljAktie("Apple (AAPL)");
+function handleLoginSuccess(user) {
+    currentUser = user;
+    document.getElementById('authModal').style.display = 'none';
+    document.getElementById('accountBar').style.display = 'block';
+    document.getElementById('avatarBtn').innerText = user.email[0].toUpperCase();
+    if (aktivAktie) document.getElementById('tradeControls').style.display = 'block';
+    loadProfile();
+}
 
-// 4. Se till att Live-knappen lyser blått och systemet vet att vi är i live-mode
-setChartMode('live');
+async function loadProfile() {
+    const { data } = await supabaseClient.from('profiles').select('*').eq('user_id', currentUser.id).single();
+    if (data) { saldo = data.balance; portfölj = data.portfolio || {}; }
+    uppdateraPortföljUI();
+}
 
-// 5. Håll kvar din error-rensares lyssnare
-document.getElementById('tradeAmount').addEventListener('input', rensaTradeFel);
+async function saveProfile() {
+    await supabaseClient.from('profiles').upsert({ user_id: currentUser.id, balance: saldo, portfolio: portfölj });
+}
 
+/* --- TRADING --- */
+async function genomförAffär(typ) {
+    const antal = parseInt(document.getElementById('tradeAmount').value);
+    const pris = aktier[aktivAktie].pris;
+    const kostnad = pris * antal;
 
-  
+    if (typ === 'köp' && saldo >= kostnad) {
+        saldo -= kostnad;
+        if (!portfölj[aktivAktie]) portfölj[aktivAktie] = { antal: 0, totaltInköp: 0 };
+        portfölj[aktivAktie].antal += antal;
+        portfölj[aktivAktie].totaltInköp += kostnad;
+    } else if (typ === 'sälj' && portfölj[aktivAktie]?.antal >= antal) {
+        saldo += kostnad;
+        portfölj[aktivAktie].antal -= antal;
+        if (portfölj[aktivAktie].antal === 0) delete portfölj[aktivAktie];
+    } else {
+        document.getElementById('tradeError').innerText = "Otillräckligt innehav/saldo";
+        return;
+    }
+    uppdateraPortföljUI();
+    saveProfile();
+}
+
+function uppdateraPortföljUI() {
+    document.getElementById('balanceDisplay').innerText = saldo.toLocaleString() + " USD";
+    const container = document.getElementById('portfolioDisplay');
+    container.innerHTML = "<h4>PORTFÖLJ</h4>";
+    for (let s in portfölj) {
+        container.innerHTML += `<div>${s}: ${portfölj[s].antal} st</div>`;
+    }
+}
+
+async function signIn() {
+    const email = document.getElementById('authEmail').value;
+    const password = document.getElementById('authPassword').value;
+    const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+    if (error) document.getElementById('authError').innerText = error.message;
+}
+
+async function signUp() {
+    const email = document.getElementById('authEmail').value;
+    const password = document.getElementById('authPassword').value;
+    const { error } = await supabaseClient.auth.signUp({ email, password });
+    if (error) document.getElementById('authError').innerText = error.message;
+}
+
+function handleLogout() { supabaseClient.auth.signOut(); }
+
+/* --- INIT --- */
+(async () => {
+    for (let s of symboler) {
+        aktier[s] = { pris: 0, history: [] };
+        const p = await fetchPrice(s);
+        aktier[s].pris = p || 150;
+        aktier[s].history.push({ x: Date.now(), o: aktier[s].pris, h: aktier[s].pris, l: aktier[s].pris, c: aktier[s].pris });
+    }
+    renderStockList();
+    initSupabaseAuth();
+    väljAktie("AAPL");
+    startLiveUpdates();
+})();
 </script>
-
 </body>
 </html>

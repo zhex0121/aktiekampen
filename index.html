@@ -924,62 +924,66 @@ const PRICE_UPDATE_MS=5000;
   
 /* Init aktier */
 
-symboler.forEach(s=>{
+symboler.forEach(s => {
+    let category = "Stocks";
+    if (s.includes("S&P 500")) category = "Index";
+    if (s.includes("Bitcoin")) category = "Crypto";
 
-let basPris=0
-
-aktier[s]={
-
-ticker:s,
-
-pris:basPris,
-
-history:[],
-
-chartSessionStart:null,
-
-change:(Math.random()*4-2).toFixed(2)
-
-};
-
-
+    aktier[s] = {
+        ticker: s,
+        pris: 0,
+        history: [],
+        chartSessionStart: null,
+        change: (Math.random() * 4 - 2).toFixed(2),
+        category: category
+    };
 });
 
-function renderStockList(filter=""){
+function renderStockList(filter = "") {
+    const container = document.getElementById('stockList');
+    container.innerHTML = "";
 
-const container=document.getElementById('stockList');
+    const sökord = filter.toLowerCase();
 
-container.innerHTML="";
+    // Group stocks by category
+    const categories = { "Index": [], "Stocks": [], "Crypto": [] };
 
-const sökord = filter.toLowerCase();
+    Object.keys(aktier)
+        .filter(s => {
+            if (sökord === "") return true;
+            const namn = s.split(' (')[0].toLowerCase();
+            const ticker = s.split(' (')[1].replace(')', '').toLowerCase();
+            return namn.startsWith(sökord) || ticker.startsWith(sökord);
+        })
+        .forEach(s => {
+            categories[aktier[s].category].push(s);
+        });
 
-Object.keys(aktier)
-    .filter(s => {
-        if (sökord === "") return true;
-        const namn = s.split(' (')[0].toLowerCase();
-        const ticker = s.split(' (')[1].replace(')', '').toLowerCase();
-        return namn.startsWith(sökord) || ticker.startsWith(sökord);
-    })
+    // Render each category
+    for (const cat of ["Index", "Stocks", "Crypto"]) {
+        if (categories[cat].length === 0) continue;
 
-.forEach(s=>{
+        // Category heading
+        const heading = document.createElement('div');
+        heading.style.padding = '10px 15px';
+        heading.style.fontWeight = 'bold';
+        heading.style.color = 'var(--text-dim)';
+        heading.style.borderBottom = '1px solid var(--border)';
+        heading.innerText = cat.toUpperCase();
+        container.appendChild(heading);
 
-const div=document.createElement('div');
-
-div.className=
-`stock-item ${aktivAktie===s?'active':''}`;
-
-div.onclick=()=>väljAktie(s);
-
-div.innerHTML =
-`<div><b>${s}</b></div>
-<div>
-${aktier[s].pris.toFixed(2)}
-</div>`;
-
-container.appendChild(div);
-
-});
-
+        // Stock items
+        categories[cat].forEach(s => {
+            const div = document.createElement('div');
+            div.className = `stock-item ${aktivAktie === s ? 'active' : ''}`;
+            div.onclick = () => väljAktie(s);
+            div.innerHTML = `
+                <div><b>${s}</b></div>
+                <div>${aktier[s].pris.toFixed(2)}</div>
+            `;
+            container.appendChild(div);
+        });
+    }
 }
 
 

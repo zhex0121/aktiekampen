@@ -622,6 +622,18 @@ let currentUser=null;
 
 let authReady=false;
 
+async function fetchPrice(ticker) {
+    try {
+        const cleanTicker = ticker.split(' (')[1].replace(')', '');
+        const response = await fetch(`https://server-api-092b.onrender.com/api/price/${encodeURIComponent(cleanTicker)}`);
+        if (!response.ok) return null;
+        const data = await response.json();
+        return Number(data.c);
+    } catch (err) {
+        return null;
+    }
+}
+    
 const STARTING_BALANCE=100000;
 
 function showAuthModal(show){
@@ -939,7 +951,7 @@ function genereraStartCandles(aktie, antal=300){
 
 symboler.forEach(s=>{
 
-let basPris=Math.random()*2000+50;
+let basPris=0
 
 aktier[s]={
 
@@ -1591,29 +1603,32 @@ document.getElementById('searchInput').value
 
 }
 
-
 /* Live pris */
 initSupabaseAuth();
-setInterval(()=>{
-    let aktivRiktning=null;
-    Object.keys(aktier).forEach(s=>{
-        let aktie = aktier[s];
-        let gammaltPris = aktie.pris;
-        let nyttPris = gammaltPris * (1 + (Math.random()-0.5)*0.01);
+setInterval(async () => {
+    let aktivRiktning = null;
+    
+    // Vi skapar en lista av löften (promises) för att hämta alla priser samtidigt
+    const promises = Object.keys(aktier).map(async (s) => {
+        const aktie = aktier[s];
+        const gammaltPris = aktie.pris;
+        const nyttPris = await fetchPrice(s); // HÄMTAR RIKTIGT PRIS
+        
+        if (nyttPris === null) return;
+
         aktie.pris = nyttPris;
-        if(s===aktivAktie){
-            if(nyttPris>gammaltPris) aktivRiktning='up';
-            else if(nyttPris<gammaltPris) aktivRiktning='down';
-            else aktivRiktning=null;
+        if (s === aktivAktie) {
+            if (nyttPris > gammaltPris) aktivRiktning = 'up';
+            else if (nyttPris < gammaltPris) aktivRiktning = 'down';
         }
 
-        // Uppdatera candlestick
+        // Uppdatera candlestick (samma logik som innan men med riktigt pris)
         let nu = Date.now();
-        let senasteCandle = aktie.history[aktie.history.length-1];
-        if(nu - senasteCandle.x < CANDLE_MS){
+        let senasteCandle = aktie.history[aktie.history.length - 1];
+        if (nu - senasteCandle.x < CANDLE_MS) {
             senasteCandle.c = nyttPris;
-            senasteCandle.h = Math.max(senasteCandle.h, senasteCandle.o, senasteCandle.c);
-            senasteCandle.l = Math.min(senasteCandle.l, senasteCandle.o, senasteCandle.c);
+            senasteCandle.h = Math.max(senasteCandle.h, nyttPris);
+            senasteCandle.l = Math.min(senasteCandle.l, nyttPris);
         } else {
             aktie.history.push({
                 x: nu,
@@ -1622,23 +1637,21 @@ setInterval(()=>{
                 l: Math.min(senasteCandle.c, nyttPris),
                 c: nyttPris
             });
-            if(aktie.history.length > MAX_CANDLES) aktie.history.shift();
+            if (aktie.history.length > MAX_CANDLES) aktie.history.shift();
         }
     });
 
+    await Promise.all(promises); // Vänta på att alla priser hämtats
+
     uppdateraAktiv(aktivRiktning);
-    if(currentUser) uppdateraPortfölj();
-
-  if(chart && aktivAktie){
-
-updateChartView();
-
-}
-
-    // Uppdatera sidopanelen automatiskt utan färg
+    if (currentUser) uppdateraPortfölj();
+    if (chart && aktivAktie) updateChartView();
     renderStockList(document.getElementById('searchInput').value);
 
 }, PRICE_UPDATE_MS);
+
+
+    
   
 // 1. Rendera listan först
 renderStockList();

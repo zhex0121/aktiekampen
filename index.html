@@ -939,14 +939,16 @@ symboler.forEach(s => {
     };
 });
 
-function renderStockList(filter = "") {
+
+
+    function renderStockList(filter = "") {
     const container = document.getElementById('stockList');
     container.innerHTML = "";
 
     const sökord = filter.toLowerCase();
 
-    // Group stocks by category
-    const categories = { "Index": [], "Stocks": [], "Crypto": [] };
+    // Gruppera aktier efter kategori
+    const categories = { "Index": [], "Aktier": [], "Krypto": [] };
 
     Object.keys(aktier)
         .filter(s => {
@@ -956,23 +958,31 @@ function renderStockList(filter = "") {
             return namn.startsWith(sökord) || ticker.startsWith(sökord);
         })
         .forEach(s => {
-            categories[aktier[s].category].push(s);
+            let cat = aktier[s].category;
+            if (cat === "Stocks") cat = "Aktier";
+            if (cat === "Crypto") cat = "Krypto";
+            if (cat === "Index") cat = "Index";
+            categories[cat].push(s);
         });
 
-    // Render each category
-    for (const cat of ["Index", "Stocks", "Crypto"]) {
+    // Rendera varje kategori
+    for (const cat of ["Index", "Aktier", "Krypto"]) {
         if (categories[cat].length === 0) continue;
 
-        // Category heading
+        // Rubrik för kategori
         const heading = document.createElement('div');
-        heading.style.padding = '10px 15px';
+        heading.style.padding = '8px 15px';
         heading.style.fontWeight = 'bold';
-        heading.style.color = 'var(--text-dim)';
+        heading.style.color = 'var(--accent)'; // accent-färg för rubriker
+        heading.style.background = 'var(--surface)';
         heading.style.borderBottom = '1px solid var(--border)';
-        heading.innerText = cat.toUpperCase();
+        heading.style.position = 'sticky';
+        heading.style.top = '0';
+        heading.style.zIndex = '5';
+        heading.innerText = cat;
         container.appendChild(heading);
 
-        // Stock items
+        // Aktie-element
         categories[cat].forEach(s => {
             const div = document.createElement('div');
             div.className = `stock-item ${aktivAktie === s ? 'active' : ''}`;
@@ -985,7 +995,6 @@ function renderStockList(filter = "") {
         });
     }
 }
-
 
 
 

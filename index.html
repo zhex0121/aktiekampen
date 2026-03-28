@@ -502,7 +502,7 @@ id="balanceDisplay"
 style="font-size:1.5rem;
 font-weight:bold;">
 
-10 000,00 USD 
+ 
 
 </div>
 
@@ -634,7 +634,7 @@ async function fetchPrice(ticker) {
     }
 }
     
-const STARTING_BALANCE=100000;
+const STARTING_BALANCE=10000;
 
 function showAuthModal(show){
 
@@ -965,7 +965,7 @@ div.onclick=()=>väljAktie(s);
 div.innerHTML =
 `<div><b>${s}</b></div>
 <div>
-$${aktier[s].pris.toFixed(2)}
+${aktier[s].pris.toFixed(2)} USD
 </div>`;
 
 container.appendChild(div);
@@ -1457,7 +1457,7 @@ document.getElementById('balanceDisplay')
 saldo.toLocaleString(
 'sv-SE',
 {minimumFractionDigits:2}
-)+" USD";
+).toFixed(0)+" USD";
 
 const container=
 document.getElementById('portfolioDisplay');
@@ -1515,7 +1515,7 @@ ${s} (${antal} st)
 
 <span>
 
-$${värde.toFixed(0)}
+${värde.toFixed(0)} USD
 
 </span>
 
@@ -1528,7 +1528,7 @@ margin-top:4px;
 ">
 
 Snittpris:
-$${snitt.toFixed(2)}
+${snitt.toFixed(2)} USD
 
 </div>
 
@@ -1545,7 +1545,7 @@ Resultat:
 
 ${resultat>=0?'+':''}
 
-$${resultat.toFixed(0)}
+${resultat.toFixed(0)} USD
 
 (${procent.toFixed(2)}%)
 

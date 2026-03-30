@@ -592,9 +592,9 @@ PORTFÖLJ
 const symboler = [
     "S&P 500 (SPY)", "Nasdaq 100 (QQQ)", "Dow Jones (DIA)",
     "Bitcoin (BINANCE:BTCUSDT)", "Ethereum (BINANCE:ETHUSDT)", "Solana (BINANCE:SOLUSDT)", "Dogecoin (BINANCE:DOGEUSDT)",
-    "Guld (GLD)",
+    "Gold (GLD)",
     "Apple (AAPL)", "Microsoft (MSFT)", "Nvidia (NVDA)", "Alphabet (GOOGL)", "Amazon (AMZN)", 
-    "Meta (META)", "Berkshire Hathaway (BRK.B)", "Eli Lilly (LLY)", "Broadcom (AVGO)", "Tesla (TSLA)",
+    "Meta (META)", "Berkshire (BRK.B)", "Eli Lilly (LLY)", "Broadcom (AVGO)", "Tesla (TSLA)",
     "Visa (V)", "UnitedHealth (UNH)", "Walmart (WMT)", "Mastercard (MA)", "JPMorgan (JPM)", 
     "Procter & Gamble (PG)", "Costco (COST)", "Oracle (ORCL)", "Home Depot (HD)", 
     "ExxonMobil (XOM)", "Adobe (ADBE)", "ASML (ASML)"
@@ -626,6 +626,36 @@ const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYm
 const { createClient } = supabase;
 
 const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// 本地存储备份
+function sparaTillLokalt() {
+    if (currentUser) {
+        const data = {
+            saldo: saldo,
+            portfölj: portfölj,
+            timestamp: Date.now()
+        };
+        localStorage.setItem(`paperalpha_${currentUser.id}`, JSON.stringify(data));
+    }
+}
+
+function laddaFrånLokalt() {
+    if (currentUser) {
+        const saved = localStorage.getItem(`paperalpha_${currentUser.id}`);
+        if (saved) {
+            try {
+                const data = JSON.parse(saved);
+                // 只在30分钟内使用本地数据
+                if (Date.now() - data.timestamp < 30 * 60 * 1000) {
+                    return data;
+                }
+            } catch (e) {
+                console.warn("Lokalt data korrupt:", e);
+            }
+        }
+    }
+    return null;
+}
 
 let currentExchangeRate = 10.65; // 默认汇率
 
@@ -752,85 +782,141 @@ document.getElementById('authError').innerText = msg || '';
 
 }
 
-async function ensureProfileAndLoad(){
+async function ensureProfileAndLoad() {
+    if (!currentUser) return;
+    const userId = currentUser.id;
 
-const userId=currentUser.id;
+    console.log("Loading profile for user:", userId);
 
-const { data: profile, error } = await supabaseClient
-  .from('profiles')
-  .select('balance, portfolio')
-  .eq('user_id', userId)
-  .maybeSingle();
+    try {
+        // 从 Supabase 查询
+        const { data: profile, error } = await supabaseClient
+            .from('profiles')
+            .select('balance, portfolio, email')
+            .eq('user_id', userId)
+            .maybeSingle();
 
-if(error) throw error;
+        if (error) {
+            console.error("Profile query error:", error);
+            throw error;
+        }
 
-if(!profile){
+        if (!profile) {
+            // 如果是新用户，在数据库创建初始存档
+            console.log("Creating new profile for user:", userId);
+            const { error: insertError } = await supabaseClient
+                .from('profiles')
+                .insert({
+                    user_id: userId,
+                    email: currentUser.email,
+                    balance: 10000,
+                    portfolio: {}
+                });
+            
+            if (insertError) {
+                console.error("Profile creation error:", insertError);
+                throw insertError;
+            }
+            
+            saldo = 10000;
+            portfölj = {};
+            console.log("New profile created with default values");
+        } else {
+            // 如果是老用户，先尝试从本地加载（快速显示）
+            const lokalData = laddaFrånLokalt();
+            if (lokalData) {
+                console.log("Using local backup while cloud loads...");
+                saldo = lokalData.saldo;
+                portfölj = lokalData.portfölj;
+                uppdateraPortfölj(); // 立即更新界面
+            }
+            
+            // 然后从云端加载最新数据
+            console.log("Loading existing profile from cloud:", profile);
+            saldo = Number(profile.balance) || 10000;
+            
+            // 关键点：确保读取到的 portfolio 是对象格式
+            const rawPortfolio = profile.portfolio || {};
+            portfölj = {};
+            
+            // 只加载有效的股票数据
+            Object.keys(rawPortfolio).forEach(ticker => {
+                if (rawPortfolio[ticker] && typeof rawPortfolio[ticker] === 'object') {
+                    portfölj[ticker] = {
+                        antal: Number(rawPortfolio[ticker].antal || 0),
+                        totaltInköp: Number(rawPortfolio[ticker].totaltInköp || 0)
+                    };
+                    
+                    // 过滤掉无效的持仓
+                    if (portfölj[ticker].antal <= 0) {
+                        delete portfölj[ticker];
+                    }
+                }
+            });
+            
+            console.log("Loaded portfolio:", portfölj);
+        }
 
-const { error: insertError } = await supabaseClient
-  .from('profiles')
-  .insert({
-    user_id: userId,
-    email: currentUser.email,
-    balance: STARTING_BALANCE,
-    portfolio: {}
-  });
-
-if(insertError) throw insertError;
-
-saldo = STARTING_BALANCE;
-
-portfölj = {};
-
-}else{
-
-saldo = Number(profile.balance ?? STARTING_BALANCE);
-
-const raw = profile.portfolio ?? {};
-
-// Only keep tickers that exist in this game (avoid rendering crashes)
-portfölj = {};
-Object.keys(raw).forEach(t => {
-    if (!aktier[t]) return; // bara våra tio aktier
-    const v = raw[t] || {};
-    portfölj[t] = {
-        antal: Number(v.antal ?? 0),
-        totaltInköp: Number(v.totaltInköp ?? 0),
-    };
-});
-
+        // 更新界面
+        uppdateraPortfölj();
+        
+        // 保存到本地作为备份
+        sparaTillLokalt();
+        
+    } catch (err) {
+        console.error("Failed to load profile:", err);
+        // 如果加载失败，使用默认值
+        saldo = 10000;
+        portfölj = {};
+        uppdateraPortfölj();
+    }
 }
 
-uppdateraPortfölj();
-
-try{
-
-await sparaPortföljTillSupabase();
-
-}catch(e){
-
-document.getElementById('tradeError').innerText="Det gick inte att spara";
-
-}
-
-}
 
 async function sparaPortföljTillSupabase(){
+    if(!currentUser) {
+        console.error("Cannot save: No user logged in");
+        throw new Error("No user logged in");
+    }
 
-if(!currentUser) return;
+    try {
+        console.log("Saving to Supabase:", { 
+            user_id: currentUser.id, 
+            balance: saldo, 
+            portfolio: portfölj 
+        });
 
-const { error } = await supabaseClient
-  .from('profiles')
-  .upsert(
-    {
-      user_id: currentUser.id,
-      balance: saldo,
-      portfolio: portfölj,
-    },
-    { onConflict: 'user_id' }
-  );
+        const { data, error } = await supabaseClient
+            .from('profiles')
+            .upsert(
+                {
+                    user_id: currentUser.id,
+                    email: currentUser.email,
+                    balance: Number(saldo),
+                    portfolio: portfölj,
+                    updated_at: new Date().toISOString()
+                },
+                { 
+                    onConflict: 'user_id',
+                    returning: 'representation' 
+                }
+            )
+            .select()
+            .single();
 
-if(error) throw error;
+        if (error) {
+            console.error("Supabase save error:", error);
+            throw error;
+        }
 
+        console.log("Successfully saved to Supabase:", data);
+        sparaTillLokalt(); // 添加本地备份
+        return data;
+        
+    } catch (error) {
+        console.error("Failed to save to Supabase:", error);
+        throw error;
+    }
 }
 
 
@@ -842,14 +928,36 @@ if(error) throw error;
 
 async function handleLogout(){
     try{
-        await supabaseClient.auth.signOut();
+        // 先保存当前数据到云端
+        if(currentUser) {
+            await sparaPortföljTillSupabase();
+            // 清理本地存储
+            localStorage.removeItem(`paperalpha_${currentUser.id}`);
+        }
+        
+        // 登出 Supabase
+        const { error } = await supabaseClient.auth.signOut();
+        if (error) {
+            console.error("Supabase logout error:", error);
+        }
 
-        // Tvinga logout UI direkt
+        // 强制清理状态
         currentUser = null;
+        saldo = 10000;
+        portfölj = {};
+        
+        // 更新UI到登出状态
         showLoggedOutUI();
+        
+        console.log("Utloggad och data rensad");
 
     }catch(e){
-        console.error(e);
+        console.error("Logout fel:", e);
+        // 即使出错也要清理界面
+        currentUser = null;
+        saldo = 10000;
+        portfölj = {};
+        showLoggedOutUI();
     }
 }
 
@@ -902,35 +1010,37 @@ async function signUp() {
 
 
   
-async function initSupabaseAuth(){
+async function initSupabaseAuth() {
+    // 1. 初始化汇率同步
     fetchExchangeRate();
-// 每12小时更新一次汇率（与server同步）
-    setInterval(fetchExchangeRate, 12 * 60 * 60 * 1000);// Visa modalen direkt som utgångspunkt
+    setInterval(fetchExchangeRate, 12 * 60 * 60 * 1000);
+
+    // 2. 初始状态设为登出（直到确认 session）
     showLoggedOutUI();
 
-    // 1. Kolla direkt om vi redan har en session (vid sidladdning)
-    const { data: { session } } = await supabaseClient.auth.getSession();
-    if(session?.user){
-        currentUser = session.user;
-        showLoggedInUI();
-        ensureProfileAndLoad().catch(console.error);
-    }
+    // 3. 核心：监听所有身份状态变化（包括页面刷新、登录、登出）
+    supabaseClient.auth.onAuthStateChange(async (event, session) => {
+        console.log("Auth Event:", event); 
 
-    // 2. Lyssna på ALLA förändringar dynamiskt
-    supabaseClient.auth.onAuthStateChange((event, session) => {
-        console.log("Auth Event:", event); // Bra för debugging
-
-        if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'USER_UPDATED') && session?.user) {
+        if (session?.user) {
+            // 情况 A: 用户已登录 (包括刷新页面后恢复会话)
             currentUser = session.user;
             showLoggedInUI();
-            ensureProfileAndLoad().catch(console.error);
-        }
-
-        if (event === 'SIGNED_OUT') {
+            
+            try {
+                // 加载云端数据（余额和持仓）
+                await ensureProfileAndLoad();
+                console.log("Användardata laddad!");
+            } catch (err) {
+                console.error("Kunde inte ladda profil:", err);
+            }
+        } else {
+            // 情况 B: 用户未登录或已登出
             currentUser = null;
-            saldo = 10000; // Återställ lokalt saldo
-            portfölj = {};  // Töm lokal portfölj
+            saldo = 10000;
+            portfölj = {};
             showLoggedOutUI();
+            uppdateraPortfölj(); // 清空界面上的显示
         }
     });
 }
@@ -1397,114 +1507,116 @@ function updateChartView(){
   
 async function genomförAffär(typ){
 
-if(!currentUser){
+    if(!currentUser){
+        document.getElementById('tradeError').innerText="Vänligen logga in först!";
+        showAuthModal(true);
+        return;
+    }
 
-document.getElementById('tradeError').innerText="Vänligen logga in först!";
+    const råVärde=document.getElementById('tradeAmount').value.trim();
 
-showAuthModal(true);
+    if(!aktivAktie||!/^\d+$/.test(råVärde)){
+        visaTradeFel();
+        return;
+    }
 
-return;
+    let antal=parseInt(råVärde,10);
 
-}
+    if(isNaN(antal)||antal<=0){
+        visaTradeFel();
+        return;
+    }
 
-const råVärde=document.getElementById('tradeAmount').value.trim();
+    const pris=aktier[aktivAktie].pris;
 
-if(!aktivAktie||!/^\d+$/.test(råVärde)){
+    // 检查价格是否有效
+    if(!pris || pris <= 0 || !Number.isFinite(pris)){
+        document.getElementById('tradeError').innerText="Gör om, gör rätt!";
+        return;
+    }
 
-visaTradeFel();
+    const kostnadUSD=pris*antal;
+    const kostnad=kostnadUSD*currentExchangeRate; // 转换为SEK
 
-return;
+    try {
+        if(typ==='köp'){
+            if(saldo>=kostnad){
+                saldo-=kostnad;
 
-}
+                if(!portfölj[aktivAktie]){
+                    portfölj[aktivAktie]={
+                        antal:0,
+                        totaltInköp:0
+                    };
+                }
 
-let antal=parseInt(råVärde,10);
+                portfölj[aktivAktie].antal+=antal;
+                portfölj[aktivAktie].totaltInköp+=kostnadUSD; 
+                rensaTradeFel();
+                
+                console.log(`Köpte ${antal} st ${aktivAktie} för ${kostnadUSD} USD`);
+            } else {
+                visaTradeFel();
+                return;
+            }
+        }
 
-if(isNaN(antal)||antal<=0){
+        if(typ==='sälj'){
+            if(
+                portfölj[aktivAktie] &&
+                portfölj[aktivAktie].antal>=antal
+            ){
+                const snitt=portfölj[aktivAktie].totaltInköp/portfölj[aktivAktie].antal;
+                saldo+=kostnad;
+                portfölj[aktivAktie].antal-=antal;
+                portfölj[aktivAktie].totaltInköp-=snitt*antal;
 
-visaTradeFel();
+                if(portfölj[aktivAktie].antal===0){
+                    delete portfölj[aktivAktie];
+                }
+                rensaTradeFel();
+                
+                console.log(`Sålde ${antal} st ${aktivAktie} för ${kostnadUSD} USD`);
+            } else {
+                visaTradeFel();
+                return;
+            }
+        }
 
-return;
-
-}
-
-const pris=aktier[aktivAktie].pris;
-const kostnadUSD=pris*antal;
-const kostnad=kostnadUSD*currentExchangeRate; // 转换为SEK
-
-if(typ==='köp'){
-
-if(saldo>=kostnad){
-
-saldo-=kostnad;
-
-if(!portfölj[aktivAktie]){
-
-portfölj[aktivAktie]={
-
-antal:0,
-
-totaltInköp:0
-
-};
-
-}
-
-portfölj[aktivAktie].antal+=antal;
-
-portfölj[aktivAktie].totaltInköp+=kostnadUSD; 
-
-rensaTradeFel();
-
-}
-
-else{
-
-visaTradeFel();
-
-return;
-}
-
-}
-
-if(typ==='sälj'){
-
-if(
-portfölj[aktivAktie] &&
-portfölj[aktivAktie].antal>=antal
-){
-
-const snitt=
-
-portfölj[aktivAktie].totaltInköp/
-portfölj[aktivAktie].antal;
-
-saldo+=kostnad;
-
-portfölj[aktivAktie].antal-=antal;
-
-portfölj[aktivAktie].totaltInköp-=snitt*antal;
-
-if(portfölj[aktivAktie].antal===0){
-
-delete portfölj[aktivAktie];
-
-}
-
-rensaTradeFel();
-
-}
-
-else{
-
-visaTradeFel();
-
-return;
-}
-
-}
-
-uppdateraPortfölj();
-
+        // 更新界面
+        uppdateraPortfölj();
+        
+        // 先保存到本地
+        sparaTillLokalt();
+        
+        // 保存到云端
+        try {
+            await sparaPortföljTillSupabase();
+            console.log("Transaction saved successfully!");
+            
+            // 添加保存成功的视觉反馈
+            document.getElementById('tradeError').innerText = "Sparat!";
+            setTimeout(() => rensaTradeFel(), 1500);
+        } catch (saveError) {
+            console.error("Failed to save transaction:", saveError);
+            document.getElementById('tradeError').innerText = "Kunde inte spara till molnet!";
+            
+            // 如果保存失败，尝试重新加载数据以避免状态不一致
+            setTimeout(async () => {
+                try {
+                    await ensureProfileAndLoad();
+                    rensaTradeFel();
+                } catch (loadError) {
+                    console.error("Failed to reload data:", loadError);
+                }
+            }, 2000);
+        }
+        
+    } catch (error) {
+        console.error("Transaction error:", error);
+        document.getElementById('tradeError').innerText = "Transaktion misslyckades!";
+        rensaTradeFel();
+    }
 }
 
 function uppdateraPortfölj(){
@@ -1623,6 +1735,14 @@ document.getElementById('searchInput').value
 
 /* Live pris */
 initSupabaseAuth();
+window.debugData = () => {
+    console.log("=== DEBUG INFO ===");
+    console.log("Current user:", currentUser);
+    console.log("Saldo:", saldo);
+    console.log("Portfölj:", portfölj);
+    console.log("Lokal data:", laddaFrånLokalt());
+    return { currentUser, saldo, portfölj };
+};
 setInterval(async () => {
     let aktivRiktning = null;
     

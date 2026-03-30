@@ -589,13 +589,15 @@ PORTFÖLJ
 
 <script>
 
-const symboler=[
-    
-    "S&P 500 ETF (SPY)",
-    "Nvidia (NVDA)",
-    "Apple (AAPL)",
-    "Alphabet Inc (GOOG)",
-    "Bitcoin (BINANCE:BTCUSDT)"
+const symboler = [
+    "S&P 500 (SPY)", "Nasdaq 100 (QQQ)", "Dow Jones (DIA)",
+    "Bitcoin (BINANCE:BTCUSDT)", "Ethereum (BINANCE:ETHUSDT)", "Solana (BINANCE:SOLUSDT)", "Dogecoin (BINANCE:DOGEUSDT)",
+    "Gold (GLD)",
+    "Apple (AAPL)", "Microsoft (MSFT)", "Nvidia (NVDA)", "Alphabet (GOOGL)", "Amazon (AMZN)", 
+    "Meta (META)", "Berkshire (BRK.B)", "Eli Lilly (LLY)", "Broadcom (AVGO)", "Tesla (TSLA)",
+    "Visa (V)", "UnitedHealth (UNH)", "Walmart (WMT)", "Mastercard (MA)", "JPMorgan (JPM)", 
+    "Procter & Gamble (PG)", "Costco (COST)", "Oracle (ORCL)", "Home Depot (HD)", 
+    "ExxonMobil (XOM)", "Adobe (ADBE)", "ASML (ASML)"
 ];
 
 let aktier={};
@@ -978,52 +980,58 @@ symboler.forEach(s => {
     const sökord = filter.toLowerCase();
 
     // Gruppera aktier efter kategori
-    const categories = { "Index": [], "Aktier": [], "Krypto": [] };
+    const categories = { "Index": [], "Krypto": [], "Råvaror": [], "Aktier": [] };
 
-    Object.keys(aktier)
-        .filter(s => {
-            if (sökord === "") return true;
-            const namn = s.split(' (')[0].toLowerCase();
-            const ticker = s.split(' (')[1].replace(')', '').toLowerCase();
-            return namn.startsWith(sökord) || ticker.startsWith(sökord);
-        })
-        .forEach(s => {
-            let cat = aktier[s].category;
-            if (cat === "Stocks") cat = "Aktier";
-            if (cat === "Crypto") cat = "Krypto";
-            if (cat === "Index") cat = "Index";
+    Object.keys(aktier).forEach(s => {
+        // 简单的分类逻辑
+        let cat = "Aktier";
+        if (s.includes("SPY") || s.includes("QQQ") || s.includes("DIA")) cat = "Index";
+        else if (s.includes("BINANCE")) cat = "Krypto";
+        else if (s.includes("GLD")) cat = "Råvaror";
+
+        if (s.toLowerCase().includes(sökord)) {
             categories[cat].push(s);
-        });
+        }
+    });
 
-    // Rendera varje kategori
-    for (const cat of ["Index", "Aktier", "Krypto"]) {
-        if (categories[cat].length === 0) continue;
+        
+    ["Index", "Krypto", "Råvaror", "Aktier"].forEach(catName => {
+        if (categories[catName].length === 0) return;
+        
+        // 添加分类小标题
+        const header = document.createElement('div');
+        header.style.padding = "10px";
+        header.style.background = "#222";
+        header.style.fontSize = "0.7rem";
+        header.style.color = "#888";
+        header.style.fontWeight = "bold";
+        header.style.textTransform = "uppercase";
+        header.innerText = catName;
+        container.appendChild(header);
 
-        // Rubrik för kategori
-        const heading = document.createElement('div');
-        heading.style.padding = '8px 15px';
-        heading.style.fontWeight = 'bold';
-        heading.style.color = 'var(--accent)'; // accent-färg för rubriker
-        heading.style.background = 'var(--surface)';
-        heading.style.borderBottom = '1px solid var(--border)';
-        heading.style.position = 'sticky';
-        heading.style.top = '0';
-        heading.style.zIndex = '5';
-        heading.innerText = cat;
-        container.appendChild(heading);
-
-        // Aktie-element
-        categories[cat].forEach(s => {
+        categories[catName].forEach(s => {
+            const prisData = aktier[s].pris;
+            const prisVisa = (prisData === null || prisData === undefined) ? "..." : prisData.toFixed(2);
+            
             const div = document.createElement('div');
             div.className = `stock-item ${aktivAktie === s ? 'active' : ''}`;
             div.onclick = () => väljAktie(s);
+
+            // Dela upp namnet snyggt: "Apple (AAPL)" blir "Apple" och "AAPL"
+            const delar = s.split(' (');
+            const namn = delar[0];
+            const ticker = delar[1] ? delar[1].replace(')', '') : '';
+
             div.innerHTML = `
-                <div><b>${s}</b></div>
-                <div>${aktier[s].pris.toFixed(2)}</div>
+                <div>
+                    <b>${namn}</b><br>
+                    <small style="color:var(--text-dim)">${ticker}</small>
+                </div>
+                <div style="font-weight:bold;">${prisVisa}</div>
             `;
             container.appendChild(div);
         });
-    }
+    });
 }
 
 

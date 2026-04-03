@@ -478,6 +478,15 @@ Laddar priser...
 
 <div class="trade-side">
 
+<button class="btn" onclick="createLeague()">Skapa tävling</button>
+<input id="leagueName" placeholder="Tävlingsnamn">
+<input id="leagueBalance" placeholder="Startkapital" value="10000">
+<input id="leagueDuration" placeholder="Varaktighet (minuter)" value="60">
+<input id="joinCode" placeholder="Inbjudningskod">
+<button class="btn" onclick="joinLeague()">Gå med i tävling</button>
+<div id="leaderboard"></div>
+    
+
 <div id="accountBar" class="account-bar" style="display:none;">
     <div class="account-main-row">
         <button id="avatarBtn" class="avatar-btn" onclick="toggleEmailView()"></button>
@@ -734,6 +743,8 @@ async function fetchExchangeRate() {
 let currentUser=null;
 
 let authReady=false;
+
+let currentLeagueId = null;
 
 let saveQueue = Promise.resolve();
 let lastSavedState = null;
@@ -1050,15 +1061,23 @@ async function signIn() {
     const password = document.getElementById('authPassword').value.trim();
 
     if (!email || !password) {
-        setAuthError('Vänligen fyll i både e-post och lösenord.');
+        setAuthError('Fyll i både e-post och lösenord.');
         return;
     }
 
-    const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
-    if (error) {
-        // Gör Supabase felmeddelanden lite mer användarvänliga om man vill, 
-        // annars funkar error.message
-        setAuthError('Fel e-post eller lösenord. Försök igen!');
+    try {
+        const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+        
+        if (error) {
+            setAuthError('Fel e-post eller lösenord. Försök igen!');
+            console.error('Login error:', error);
+        } else if (data?.user) {
+            console.log('Inloggad som:', data.user.email);
+            // Auth state change will trigger UI update automatically
+        }
+    } catch (err) {
+        console.error('Login exception:', err);
+        setAuthError('Inloggning misslyckades. Försök igen!');
     }
 }
 
@@ -1071,26 +1090,126 @@ async function signUp() {
     const password = document.getElementById('authPassword').value.trim();
 
     if (!email || !password) {
-        setAuthError('Du måste fylla i e-post och lösenord för att skapa konto.');
+        setAuthError('Fyll i e-post och lösenord för att skapa konto.');
         return;
     }
 
-    const { data, error } = await supabaseClient.auth.signUp({ email, password });
-    
-    if (error) {
-        setAuthError('Kunde inte skapa konto: ' + error.message);
+    if (password.length < 6) {
+        setAuthError('Lösenordet måste vara minst 6 tecken.');
         return;
     }
 
-    if (!data?.session) {
-        setAuthError('Kontot finns redan. Prova att logga in istället!');
+    try {
+        const { data, error } = await supabaseClient.auth.signUp({ 
+            email, 
+            password,
+            options: {
+                emailRedirectTo: window.location.origin
+            }
+        });
+        
+        if (error) {
+            setAuthError('Kunde inte skapa konto: ' + error.message);
+            console.error('Signup error:', error);
+        } else if (data?.user && !data?.session) {
+            setAuthError('Konto skapat! Kontrollera din e-post för att bekräfta.');
+        } else if (data?.session) {
+            console.log('Konto skapat och inloggad som:', data.user.email);
+            // Auth state change will trigger UI update automatically
+        }
+    } catch (err) {
+        console.error('Signup exception:', err);
+        setAuthError('Registrering misslyckades. Försök igen!');
     }
 }
 
+async function createLeague() {
+
+    const name = document.getElementById('leagueName').value;
+    const balance = Number(document.getElementById('leagueBalance').value);
+    const duration = Number(document.getElementById('leagueDuration').value);
+
+    if (!name || !balance || !duration) {
+        alert("Fyll i alla fält!");
+        return;
+    }
+
+    const start = new Date();
+    const end = new Date(Date.now() + duration * 60000);
+
+    const inviteCode = Math.random().toString(36).substring(2,8);
+
+    // 1. 创建比赛
+    const { data, error } = await supabaseClient
+        .from('leagues')
+        .insert({
+            name,
+            creator_id: currentUser.id,
+            starting_balance: balance,
+            start_time: start,
+            end_time: end,
+            invite_code: inviteCode
+        })
+        .select()
+        .single();
+
+    if (error) {
+        console.error(error);
+        alert("Kunde inte skapa tävling");
+        return;
+    }
+
+    // 2. Sätt currentLeagueId och lägg till användaren i tävlingen
+    currentLeagueId = data.id;
+    
+    await supabaseClient
+        .from('league_members')
+        .insert({
+            league_id: data.id,
+            user_id: currentUser.id,
+            balance: balance,
+            portfolio: {}
+        });
+
+    alert("Tävling skapad! Inbjudningskod: " + inviteCode);
+    
+    // Uppdatera UI för att visa tävlingsläge
+    loadLeaderboard();
+}
 
 
+async function joinLeague() {
 
+    const code = document.getElementById('joinCode').value;
 
+    const { data: league } = await supabaseClient
+        .from('leagues')
+        .select('*')
+        .eq('invite_code', code)
+        .single();
+
+    if (!league) {
+        alert("Kunde inte hitta tävlingen");
+        return;
+    }
+
+    // Sätt currentLeagueId och lägg till användaren
+    currentLeagueId = league.id;
+    
+    await supabaseClient
+        .from('league_members')
+        .insert({
+            league_id: league.id,
+            user_id: currentUser.id,
+            balance: league.starting_balance,
+            portfolio: {}
+        });
+
+    alert("Gick med i tävlingen!");
+    
+    // Uppdatera UI för att visa tävlingsläge
+    loadLeaderboard();
+}
     
   
 async function initSupabaseAuth() {
@@ -1145,7 +1264,87 @@ uppdateraPortfölj();
 
 }
 
+async function loadLeaderboard() {
 
+    if(!currentLeagueId) return;
+
+    try {
+        const { data: members } = await supabaseClient
+            .from('league_members')
+            .select('*, profiles(email)')
+            .eq('league_id', currentLeagueId);
+
+        if (!members || members.length === 0) {
+            document.getElementById('leaderboard').innerHTML = '<h3>Resultatlista</h3><p>Inga deltagare än</p>';
+            return;
+        }
+
+        // Sortera by balance descending
+        members.sort((a,b)=> b.balance - a.balance);
+
+        let html = "<h3>Resultatlista</h3>";
+
+        members.forEach((member, index)=>{
+            const email = member.profiles?.email || 'Anonym';
+            const initials = email.substring(0, 2).toUpperCase();
+            html += `
+                <div style="
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    padding: 8px 0;
+                    border-bottom: 1px solid #333;
+                ">
+                    <div>
+                        <span style="font-weight: bold; color: ${index === 0 ? '#00ffaa' : '#fff'}">
+                            ${index + 1}.
+                        </span>
+                        <span style="margin-left: 10px; color: #ccc;">
+                            ${initials}
+                        </span>
+                    </div>
+                    <div style="font-weight: bold; color: ${index === 0 ? '#00ffaa' : '#fff'}">
+                        ${member.balance.toFixed(0)} SEK
+                    </div>
+                </div>
+            `;
+        });
+
+        document.getElementById('leaderboard').innerHTML = html;
+    } catch (error) {
+        console.error('Failed to load leaderboard:', error);
+        document.getElementById('leaderboard').innerHTML = '<h3>Resultatlista</h3><p>Kunde inte ladda resultat</p>';
+    }
+}
+
+async function checkLeagueEnd() {
+
+    if(!currentLeagueId) return;
+    
+    try {
+        const { data: league } = await supabaseClient
+            .from('leagues')
+            .select('*')
+            .eq('id', currentLeagueId)
+            .single();
+
+        if(league && new Date() > new Date(league.end_time)){
+            alert("Tävlingen är avslutad!");
+            loadLeaderboard();
+            currentLeagueId = null; // Återställ efter avslutad tävling
+        }
+    } catch (error) {
+        console.error('Failed to check league end:', error);
+    }
+}
+
+// Uppdatera leaderboard var 10:e sekund om en tävling är aktiv
+setInterval(() => {
+    if(currentLeagueId) {
+        loadLeaderboard();
+        checkLeagueEnd();
+    }
+}, 10000);
     
 
     
@@ -1629,24 +1828,36 @@ try{
 
     try {
         if(typ==='köp'){
-            if(saldo>=kostnad){
-                saldo-=kostnad;
-
-                if(!portfölj[aktivAktie]){
-                    portfölj[aktivAktie]={
-                        antal:0,
-                        totaltInköp:0
-                    };
-                }
-
-                portfölj[aktivAktie].antal+=antal;
-                portfölj[aktivAktie].totaltInköp+=kostnadUSD; 
-                rensaTradeFel();
-                
-                console.log(`Köpte ${antal} st ${aktivAktie} för ${kostnadUSD} USD`);
-            } else {
-                visaTradeFel();
+            if(saldo < kostnad){
+                document.getElementById('tradeError').innerText="Otillräckligt saldo!";
                 return;
+            }
+            
+            saldo -= kostnad;
+            
+            if(!portfölj[aktivAktie]){
+                portfölj[aktivAktie]={
+                    antal:0,
+                    totaltInköp:0
+                };
+            }
+
+            portfölj[aktivAktie].antal+=antal;
+            portfölj[aktivAktie].totaltInköp+=kostnadUSD; 
+            rensaTradeFel();
+            
+            console.log(`Köpte ${antal} st ${aktivAktie} för ${kostnadUSD} USD`);
+            
+            // Spara till league om aktiv
+            if(currentLeagueId){
+                await supabaseClient
+                    .from('league_members')
+                    .update({
+                        balance: saldo,
+                        portfolio: portfölj
+                    })
+                    .eq('league_id', currentLeagueId)
+                    .eq('user_id', currentUser.id);
             }
         }
 
@@ -1666,8 +1877,20 @@ try{
                 rensaTradeFel();
                 
                 console.log(`Sålde ${antal} st ${aktivAktie} för ${kostnadUSD} USD`);
+                
+                // Spara till league om aktiv
+                if(currentLeagueId){
+                    await supabaseClient
+                        .from('league_members')
+                        .update({
+                            balance: saldo,
+                            portfolio: portfölj
+                        })
+                        .eq('league_id', currentLeagueId)
+                        .eq('user_id', currentUser.id);
+                }
             } else {
-                visaTradeFel();
+                document.getElementById('tradeError').innerText="Otillräckligt antal aktier!";
                 return;
             }
         }
@@ -1717,6 +1940,7 @@ window.tradeLock=false;
 }
 
 
+
     
 function uppdateraPortfölj(){
 
@@ -1745,6 +1969,7 @@ const pris = aktier[s].pris;
 let värde = null;
 let resultat = null;
 let procent = null;
+let currentLeagueId = null;
 
 if(pris !== null && Number.isFinite(pris)){
 

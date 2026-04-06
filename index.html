@@ -521,12 +521,12 @@ ANTAL
 </label>
 
 <input
-type="number"
+type="text"
 id="tradeAmount"
 value="1"
-min="0.0001"
-step="0.0001"
-style="margin:10px 0 20px 0;">
+min="1"
+style="margin:10px 0 20px 0;"
+oninput="this.value=this.value.replace(/[^0-9,]/g,'')">
 
 <div id="tradeError" class="trade-error"></div>
 
@@ -1613,14 +1613,14 @@ try{
         return;
     }
 
-    const råVärde=document.getElementById('tradeAmount').value.trim();
+    const råVärde=document.getElementById('tradeAmount').value.trim().replace(',', '.');
 
-    if(!aktivAktie||!/^\d*(,\d+)?$/.test(råVärde)){
+    if(!aktivAktie||!/^\d*\.?\d+$/.test(råVärde)){
         visaTradeFel();
         return;
     }
 
-    let antal=parseFloat(råVärde.replace(',', '.'));
+    let antal=parseFloat(råVärde);
 
     if(!Number.isFinite(antal)||antal<=0){
         visaTradeFel();

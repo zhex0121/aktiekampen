@@ -46,14 +46,137 @@ color:var(--text);
 
 margin:0;
 
-display:grid;
+display:flex;
 
-grid-template-columns:350px 1fr 300px;
+flex-direction:column;
 
 height:100vh;
 
 overflow:hidden;
 
+}
+
+.top-banner {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    background: rgba(18, 18, 18, 0.95);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    z-index: 1000;
+}
+
+.logo-link {
+    text-decoration: none;
+    color: #ffffff;
+    font-size: 1.5rem;
+    font-weight: bold;
+    background: linear-gradient(45deg, #2962ff, #00ffaa);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.profile-section {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.profile-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #1e1e1e;
+    border: 1px solid var(--border);
+    color: white;
+    cursor: pointer;
+    font-weight: bold;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.profile-btn:hover {
+    border-color: var(--accent);
+    transform: scale(1.05);
+}
+
+.profile-dropdown {
+    position: absolute;
+    top: 50px;
+    right: 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 15px;
+    min-width: 200px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    display: none;
+    z-index: 1001;
+}
+
+.profile-dropdown.show {
+    display: block;
+}
+
+.profile-email {
+    color: var(--text-dim);
+    font-size: 0.9rem;
+    margin-bottom: 15px;
+    word-break: break-all;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 10px;
+}
+
+.login-prompt {
+    color: var(--text-dim);
+    font-size: 0.9rem;
+}
+
+.login-button {
+    background: none;
+    border: 1px solid var(--accent);
+    color: var(--text);
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 8px 16px;
+    border-radius: 20px;
+    transition: all 0.2s ease;
+}
+
+.login-button:hover {
+    background: var(--accent);
+}
+
+.logout-btn {
+    width: 100%;
+    padding: 8px;
+    background: var(--down);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background 0.2s ease;
+}
+
+.logout-btn:hover {
+    background: #ff2951;
+}
+
+.main-wrapper {
+    display: grid;
+    grid-template-columns: 350px 1fr 300px;
+    height: calc(100vh - 60px);
+    margin-top: 60px;
+    overflow: hidden;
 }
 
 .market-side{
@@ -62,7 +185,7 @@ display:grid;
 
 grid-template-rows:auto 1fr;
 
-height:100vh;
+height:calc(100vh - 60px);
 
 background:var(--surface);
 
@@ -408,12 +531,29 @@ margin-top:0;
 
 <body>
 
+<div class="top-banner">
+    <a href="index.html" class="logo-link">PaperAlpha</a>
+    <div class="profile-section">
+        <div id="loginPrompt" class="login-prompt" style="color: var(--text-dim); font-size: 0.9rem;">
+            <button class="login-button" onclick="showAuthModal(true)">Logga in</button>
+        </div>
+        <div id="profileSection" style="display: none;">
+            <button class="profile-btn" id="profileBtn" onclick="toggleProfileDropdown()">
+                <span id="profileInitial">?</span>
+            </button>
+            <div class="profile-dropdown" id="profileDropdown">
+                <div class="profile-email" id="profileEmail"></div>
+                <button class="logout-btn" onclick="handleLogout()">Logga ut</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="main-wrapper">
+
 <div class="market-side">
 
 <div class="search-box">
-    <div style="padding-bottom: 15px;">
-        <a href="index.html" style="text-decoration: none; color: var(--text); font-weight: bold; font-size: 1.2rem;">PaperAlpha</a>
-    </div>
     <input
     type="text"
     id="searchInput"
@@ -487,9 +627,6 @@ Laddar priser...
     <div id="accountEmail" class="account-email"></div>
 </div>
 
-
-
-    
 <div class="stat-box">
 
 <div style="color:var(--text-dim)">
@@ -503,7 +640,7 @@ id="balanceDisplay"
 style="font-size:1.5rem;
 font-weight:bold;">
 
-10 000 SEK
+Logga in för att handla
 
 </div>
 
@@ -565,7 +702,7 @@ PORTFÖLJ
 
 </div>
 
-<div id="authModal" class="auth-modal" style="display:flex;">
+<div id="authModal" class="auth-modal" style="display:none;">
 
 <div class="auth-card">
 
@@ -584,7 +721,7 @@ PORTFÖLJ
 <button class="btn btn-sell" onclick="signUp()">REGISTRERA</button>
 
 </div>
-
+<button onclick="showAuthModal(false)" style="background:none; border:none; color:var(--text-dim); cursor:pointer; margin-top: 20px; width:100%; text-align:center;">Avbryt</button>
 </div>
 
 </div>
@@ -663,9 +800,9 @@ window.addEventListener(
 "beforeunload",
 async ()=>{
 
-if(currentUser){
-
 sparaTillLokalt();
+
+if(currentUser){
 
 await sparaPortföljTillSupabase();
 
@@ -777,7 +914,11 @@ authReady=true;
 
 currentUser=null;
 
-showAuthModal(true);
+showAuthModal(false);
+
+// Dölj profil-sektionen i bannern
+document.getElementById('profileSection').style.display = 'none';
+document.getElementById('loginPrompt').style.display = 'block';
 
 document.getElementById('accountBar').style.display='none';
 
@@ -785,7 +926,7 @@ document.getElementById('tradeControls').style.display='none';
 
 document.getElementById('portfolioDisplay').style.display='none';
 
-document.getElementById('balanceDisplay').innerText='— SEK';
+document.getElementById('balanceDisplay').innerText='Logga in för att handla';
 
 }
 
@@ -807,6 +948,22 @@ document.getElementById('tradeControls').style.display = 'none';
 
     
     
+// Funktion för att visa/dölja profil-dropdown
+function toggleProfileDropdown() {
+    const dropdown = document.getElementById('profileDropdown');
+    dropdown.classList.toggle('show');
+}
+
+// Stäng dropdown när man klickar utanför
+document.addEventListener('click', function(event) {
+    const profileSection = document.getElementById('profileSection');
+    const dropdown = document.getElementById('profileDropdown');
+    
+    if (!profileSection.contains(event.target)) {
+        dropdown.classList.remove('show');
+    }
+});
+
 // Funktion för att visa/dölja bara e-posten
 function toggleEmailView() {
     const emailEl = document.getElementById('accountEmail');
@@ -819,14 +976,19 @@ function showLoggedInUI() {
     authReady = true;
     showAuthModal(false);
     
-    document.getElementById('accountBar').style.display = 'flex';
+    // Visa profil-sektionen i bannern
+    document.getElementById('profileSection').style.display = 'flex';
+    document.getElementById('loginPrompt').style.display = 'none';
+    
+    // Uppdatera profil-knappen
+    const first = (currentUser?.email || '?').trim()[0]?.toUpperCase() || '';
+    document.getElementById('profileInitial').innerText = first;
+    document.getElementById('profileEmail').innerText = currentUser?.email || '';
+    
+    // Dölj gamla accountBar
+    document.getElementById('accountBar').style.display='none';
     
     document.getElementById('portfolioDisplay').style.display = 'block'; 
-
-    document.getElementById('accountEmail').innerText = currentUser?.email || '';
-    
-    const first = (currentUser?.email || '?').trim()[0]?.toUpperCase() || '';
-    document.getElementById('avatarBtn').innerText = first;
 
     syncTradeControlsVisibility();
 }
@@ -1101,6 +1263,9 @@ fetchExchangeRate();
 
 setInterval(fetchExchangeRate,
 12 * 60 * 60 * 1000);
+
+saldo = 10000;
+portfölj = {};
 
 showLoggedOutUI();
 

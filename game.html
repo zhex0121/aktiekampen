@@ -1480,12 +1480,14 @@ priceEl.classList.remove('up','down');
 
 }
 
-function visaTradeFel(){
-document.getElementById('tradeError').innerText="Gör om, gör rätt!";
+// AFTER:
+function visaTradeFel(info = ""){
+    document.getElementById('tradeError').innerHTML =
+        `Gör om, gör rätt!${info ? `<div style="color:white;font-weight:400;font-size:0.8rem;margin-top:4px;">${info}</div>` : ''}`;
 }
 
 function rensaTradeFel(){
-document.getElementById('tradeError').innerText="";
+    document.getElementById('tradeError').innerHTML="";
 }
 
 function sättDiagramTidsfönster(){
@@ -1788,14 +1790,14 @@ try{
     const råVärde=document.getElementById('tradeAmount').value.trim().replace(',', '.');
 
     if(!aktivAktie||!/^\d*\.?\d+$/.test(råVärde)){
-        visaTradeFel();
+        visaTradeFel("Välj ett värdepapper och ange ett giltigt antal.");
         return;
     }
 
     let antal=parseFloat(råVärde);
 
     if(!Number.isFinite(antal)||antal<=0){
-        visaTradeFel();
+        visaTradeFel("Antalet måste vara ett positivt tal, t.ex. 2 eller 0,5.");
         return;
     }
 
@@ -1829,9 +1831,9 @@ Number((portfölj[aktivAktie].antal+antal).toPrecision(12));
                 
                 console.log(`Köpte ${antal} st ${aktivAktie} för ${kostnadUSD} USD`);
             } else {
-                visaTradeFel();
-                return;
-            }
+                visaTradeFel("Du har inte råd. Testa att köpa andelar av ett värdepapper.");
+    return;
+}
         }
 
         if(typ==='sälj'){
@@ -1852,8 +1854,8 @@ Number((portfölj[aktivAktie].antal-antal).toFixed(6));
                 
                 console.log(`Sålde ${antal} st ${aktivAktie} för ${kostnadUSD} USD`);
             } else {
-                visaTradeFel();
-                return;
+                visaTradeFel("Du äger inte tillräckligt många. Kontrollera ditt innehav i portföljen.");
+    return;
             }
         }
 

@@ -1381,9 +1381,19 @@ function initChart(){
     
     const ctx = document.getElementById('mainChart').getContext('2d');
     
+    // Properly destroy existing chart
     if(chart) {
-        chart.destroy();
+        try {
+            chart.destroy();
+        } catch(e) {
+            console.warn('Chart destroy error:', e);
+        }
         chart = null;
+        
+        // Clear canvas to prevent reuse issues
+        const canvas = document.getElementById('mainChart');
+        const context = canvas.getContext('2d');
+        context.clearRect(0, 0, canvas.width, canvas.height);
     }
 
     const history = aktier[aktivAktie].history;
@@ -1468,13 +1478,15 @@ scales: {
     x: {
         type: 'time',
         time: {
-            unit: chartMode === 'history' ? 'month' : 'minute',
-            minUnit: 'minute',
+            unit: chartMode === 'history' ? 'month' : 'day',
+            minUnit: 'day',
             tooltipFormat: chartMode === 'history' ? 'dd/MM/yyyy' : 'dd/MM HH:mm',
+            stepSize: chartMode === 'history' ? 1 : undefined,
             displayFormats: {
                 minute: 'HH:mm',
                 hour: 'HH:mm',
                 day: 'dd/MM',
+                week: 'dd/MM',
                 month: 'MM/yyyy',
                 year: 'yyyy'
             }

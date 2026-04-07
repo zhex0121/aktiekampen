@@ -915,27 +915,25 @@ document.getElementById('authModal').style.display = show ? 'flex' : 'none';
 }
 
 function showLoggedOutUI(){
+    authReady = true;
+    currentUser = null;
+    showAuthModal(false);
 
-authReady=true;
+    // Dölj profil-sektionen i bannern
+    document.getElementById('profileSection').style.display = 'none';
+    document.getElementById('loginPrompt').style.display = 'block';
 
-currentUser=null;
+    document.getElementById('accountBar').style.display = 'none';
+    document.getElementById('tradeControls').style.display = 'none';
+    document.getElementById('portfolioDisplay').style.display = 'none';
 
-showAuthModal(false);
-
-// Dölj profil-sektionen i bannern
-document.getElementById('profileSection').style.display = 'none';
-document.getElementById('loginPrompt').style.display = 'block';
-
-document.getElementById('accountBar').style.display='none';
-
-document.getElementById('tradeControls').style.display='none';
-
-document.getElementById('portfolioDisplay').style.display='none';
-
-document.getElementById('balanceDisplay').innerText='Logga in för att handla';
-
+    // Sätt alltid texten istället för saldo
+    document.getElementById('balanceDisplay').innerText = 'Logga in för att handla';
 }
 
+
+
+    
 function syncTradeControlsVisibility(){
 
 if(currentUser && aktivAktie){
@@ -1905,10 +1903,9 @@ window.tradeLock=false;
     
 function uppdateraPortfölj(){
 
-document.getElementById('balanceDisplay')
-
-.innerText=
-formatMoney(saldo) +" SEK";
+if (!currentUser) {
+    document.getElementById('balanceDisplay').innerText = 'Logga in för att handla';
+}
 
 const container=
 document.getElementById('portfolioDisplay');
@@ -1948,6 +1945,10 @@ procent =
 }
 
 
+
+
+
+    
 container.innerHTML+=`
 
 <div style="

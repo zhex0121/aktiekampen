@@ -741,17 +741,39 @@ async function fetchHistory(ticker, resolution='D') {
     const cleanTicker = ticker.includes("(") ? ticker.split("(")[1].replace(")","").trim() : ticker;
 
     try {
+        console.log(`Fetching historical data for ${ticker} (${cleanTicker})...`);
         const resp = await fetch(`https://server-api-092b.onrender.com/api/chart/${encodeURIComponent(cleanTicker)}?resolution=${resolution}`);
-        if (!resp.ok) throw new Error("Failed to fetch history");
+        if (!resp.ok) {
+            console.error(`HTTP error for ${ticker}:`, resp.status, resp.statusText);
+            throw new Error(`Failed to fetch history: ${resp.status}`);
+        }
         const data = await resp.json();
-        // Ensure numeric conversion
-        return data.map(c => ({
+        console.log(`Received ${data.length} candles for ${ticker}`);
+        
+        if (!Array.isArray(data) || data.length === 0) {
+            console.warn(`No historical data available for ${ticker}`);
+            return [];
+        }
+        
+        // Ensure numeric conversion and validate data
+        const validData = data.filter(c => 
+            c && 
+            typeof c.x === 'number' && !isNaN(c.x) &&
+            typeof c.o === 'number' && !isNaN(c.o) && c.o > 0 &&
+            typeof c.h === 'number' && !isNaN(c.h) && c.h > 0 &&
+            typeof c.l === 'number' && !isNaN(c.l) && c.l > 0 &&
+            typeof c.c === 'number' && !isNaN(c.c) && c.c > 0
+        ).map(c => ({
             x: Number(c.x),
             o: Number(c.o),
             h: Number(c.h),
             l: Number(c.l),
-            c: Number(c.c)
+            c: Number(c.c),
+            v: Number(c.v || 0)
         }));
+        
+        console.log(`Valid candles for ${ticker}: ${validData.length}/${data.length}`);
+        return validData;
     } catch (e) {
         console.error("Historical data error for", ticker, e);
         return [];
@@ -1270,6 +1292,7 @@ symboler.forEach(s => {
   
 async function väljAktie(ticker) {
     aktivAktie = ticker;
+    document.getElementById('activeSymbol').innerText = ticker;
     const aktie = aktier[ticker];
 
     // Fetch historical candles from server
@@ -1354,32 +1377,47 @@ chart.options.scales.x.max=nu;
 }
 
 function initChart(){
+    console.log(`Initializing chart for ${aktivAktie} with ${aktier[aktivAktie].history.length} candles`);
+    
+    const ctx = document.getElementById('mainChart').getContext('2d');
+    
+    if(chart) {
+        chart.destroy();
+        chart = null;
+    }
 
-const ctx=
-document.getElementById('mainChart')
-.getContext('2d');
+    const history = aktier[aktivAktie].history;
+    if (!history || history.length === 0) {
+        console.warn("No historical data available for chart initialization");
+        return;
+    }
 
-if(chart) chart.destroy();
+    // Validate and format candlestick data
+    const chartData = history.map(candle => ({
+        x: Number(candle.x),
+        o: Number(candle.o),
+        h: Number(candle.h), 
+        l: Number(candle.l),
+        c: Number(candle.c)
+    })).filter(candle => 
+        !isNaN(candle.x) && !isNaN(candle.o) && !isNaN(candle.h) && 
+        !isNaN(candle.l) && !isNaN(candle.c) && candle.o > 0
+    );
 
-chart=new Chart(ctx,{
+    console.log(`Chart data prepared: ${chartData.length} valid candles`);
 
-type:'candlestick',
-
-data:{
-
-datasets:[{
-
-data:aktier[aktivAktie].history,
-
-color:{
-up:'#00ffaa',
-down:'#ff3d71',
-unchanged:'#00ffaa'
-}
-
-}]
-
-},
+    chart = new Chart(ctx, {
+        type: 'candlestick',
+        data: {
+            datasets: [{
+                data: chartData,
+                color: {
+                    up: '#00ffaa',
+                    down: '#ff3d71',
+                    unchanged: '#00ffaa'
+                }
+            }]
+        },
 
 options:{
 
@@ -1426,59 +1464,40 @@ mode:'xy'
 }
 },
 
-scales:{
-
-x:{
-type:'time',
-time:{
-unit:'minute',
-minUnit:'minute',
-tooltipFormat:'dd/MM HH:mm',
-displayFormats:{minute:'HH:mm'}
-},
-grid:{color:'#1a1a1a'},
-ticks:{
-color:'#666',
-maxRotation:0,
-autoSkip:true,
-maxTicksLimit:5,
-autoSkipPadding:28,
-callback:function(value,index,ticks){
-
-const d=new Date(value);
-
-const label=d.toLocaleTimeString('sv-SE',{
-hour:'2-digit',
-minute:'2-digit',
-hour12:false
-});
-
-if(index>0&&ticks&&ticks[index-1]){
-
-const prev=new Date(ticks[index-1].value);
-
-const prevLabel=prev.toLocaleTimeString('sv-SE',{
-hour:'2-digit',
-minute:'2-digit',
-hour12:false
-});
-
-if(label===prevLabel)return '';
-
-}
-
-return label;
-
-}
-}
-},
-
-y:{
-grid:{color:'#1a1a1a'},
-ticks:{color:'#666'},
-grace:'5%'
-}
-
+scales: {
+    x: {
+        type: 'time',
+        time: {
+            unit: chartMode === 'history' ? 'month' : 'minute',
+            minUnit: 'minute',
+            tooltipFormat: chartMode === 'history' ? 'dd/MM/yyyy' : 'dd/MM HH:mm',
+            displayFormats: {
+                minute: 'HH:mm',
+                hour: 'HH:mm',
+                day: 'dd/MM',
+                month: 'MM/yyyy',
+                year: 'yyyy'
+            }
+        },
+        grid: { color: '#1a1a1a' },
+        ticks: {
+            color: '#666',
+            maxRotation: 0,
+            autoSkip: true,
+            maxTicksLimit: chartMode === 'history' ? 8 : 5,
+            autoSkipPadding: 28
+        }
+    },
+    y: {
+        grid: { color: '#1a1a1a' },
+        ticks: { 
+            color: '#666',
+            callback: function(value) {
+                return '$' + value.toFixed(2);
+            }
+        },
+        grace: '5%'
+    }
 }
 
 }
@@ -1505,6 +1524,7 @@ chart.options.plugins.zoom.onZoom = function() {
 
   
 function setChartMode(mode){
+    console.log(`Switching to ${mode} mode for ${aktivAktie}`);
     chartMode = mode;
 
     document.getElementById('liveBtn').style.background =
@@ -1514,33 +1534,50 @@ function setChartMode(mode){
 
     liveAutoScrollEnabled = (mode === 'live');
 
-    // AUTO ZOOM ONLY WHEN SWITCHING MODE
-    if(mode === 'history' && chart && aktivAktie){
-
+    if(chart && aktivAktie){
         const history = aktier[aktivAktie].history;
+        
+        if(mode === 'history' && history && history.length > 0){
+            console.log(`Setting history view with ${history.length} candles`);
+            
+            // Update chart data
+            chart.data.datasets[0].data = history.map(candle => ({
+                x: Number(candle.x),
+                o: Number(candle.o),
+                h: Number(candle.h), 
+                l: Number(candle.l),
+                c: Number(candle.c)
+            }));
 
-        if(typeof chart.resetZoom === 'function'){
-            chart.resetZoom();
-        }
+            // Reset zoom and show full range
+            if(typeof chart.resetZoom === 'function'){
+                chart.resetZoom();
+            }
 
-        if(history.length){
+            // Set time scale for historical data
             const first = history[0].x;
             const last = history[history.length-1].x;
-
-            const padding = (last-first)*0.05;
+            const padding = (last - first) * 0.02; // 2% padding
 
             chart.options.scales.x.min = first - padding;
             chart.options.scales.x.max = last + padding;
-
+            chart.options.scales.x.time.unit = 'month';
+            chart.options.scales.x.time.tooltipFormat = 'dd/MM/yyyy';
+            
+            // Auto-scale Y axis
             chart.options.scales.y.min = undefined;
             chart.options.scales.y.max = undefined;
 
+            // Enable zoom/pan for history mode
+            chart.options.plugins.zoom.pan.enabled = true;
+            chart.options.plugins.zoom.zoom.wheel.enabled = true;
+            chart.options.plugins.zoom.zoom.pinch.enabled = true;
+
             chart.update('none');
+            console.log("History view updated successfully");
         }
     }
 
-
-  
     updateChartView();
 }
   

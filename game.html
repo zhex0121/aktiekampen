@@ -1831,9 +1831,17 @@ Number((portfölj[aktivAktie].antal+antal).toPrecision(12));
                 
                 console.log(`Köpte ${antal} st ${aktivAktie} för ${kostnadUSD} USD`);
             } else {
-                visaTradeFel("Du har inte råd. Testa att köpa andelar av ett värdepapper.");
+                const affordableAmount = (saldo / kostnad * antal);
+    const isExpensive = pris * currentExchangeRate > saldo;
+    
+    const info = isExpensive
+        ? `Du har inte råd med ${antal} st. Du kan köpa delar av detta värdepapper — testa t.ex. <b style="color:var(--up);cursor:pointer;" onclick="document.getElementById('tradeAmount').value='${affordableAmount.toFixed(4).replace('.',',')}';rensaTradeFel();">${affordableAmount.toFixed(4).replace('.',',')} st</b> för ditt hela saldo.`
+        : "Du har inte råd. Testa ett mindre antal.";
+    
+    visaTradeFel(info);
     return;
 }
+
         }
 
         if(typ==='sälj'){

@@ -1244,6 +1244,10 @@ async function signUp() {
         setAuthError('Du måste fylla i e-post och lösenord för att skapa konto.');
         return;
     }
+    if (password.length < 8) {
+        setAuthError('Lösenordet måste vara minst 8 tecken långt.');
+        return;
+    }
 
     const { data, error } = await supabaseClient.auth.signUp({ email, password });
     
@@ -1252,8 +1256,16 @@ async function signUp() {
         return;
     }
 
-    if (!data?.session) {
-        setAuthError('Kontot finns redan. Prova att logga in istället!');
+    // Om Confirm Email är avstängt i Supabase, kommer data.session finnas här
+    if (data?.session) {
+        // Succé! Användaren är nu inloggad.
+        showAuthModal(false); // Stäng rutan direkt
+        // Om du har en funktion för att ladda om användardata, kör den här, t.ex:
+        // checkUser(); 
+    } else {
+        // Om session saknas betyder det oftast att kontot redan finns 
+        // eller att verifiering fortfarande krävs i Supabase-inställningarna.
+        setAuthError('Kontot skapat, men inloggning misslyckades. Prova att logga in.');
     }
 }
 

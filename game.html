@@ -1080,8 +1080,7 @@ async function ensureProfileAndLoad() {
             console.log("Loaded portfolio:", portfölj);
         }
 
-      previousPortValue = null; // Reset so no false flash after trade
-
+        // 更新界面
         uppdateraPortfölj();
         
         // 保存到本地作为备份
@@ -1882,7 +1881,8 @@ Number((portfölj[aktivAktie].antal-antal).toFixed(6));
             }
         }
 
-        // 更新界面
+previousPortValue = null; // No flash on trade
+        
         uppdateraPortfölj();
         
         // 先保存到本地

@@ -1926,7 +1926,7 @@ window.tradeLock=false;
 function uppdateraPortfölj(){
 
 document.getElementById('balanceDisplay').innerText = currentUser
-  ? formatMoney(saldo) + " SEK"
+  ? (allPricesLoaded ? formatMoney(saldo) + " SEK" : "Laddar...")
   : "Logga in för att handla";
 
 // Calculate total portfolio market value
@@ -1937,8 +1937,9 @@ for (let s in portfölj) {
     totalPortfolioValue += portfölj[s].antal * pris * currentExchangeRate;
   }
 }
+const allPricesLoaded = Object.keys(portfölj).every(s => aktier[s].pris !== null);
 document.getElementById('portfolioValueDisplay').innerText = currentUser
-  ? formatMoney(totalPortfolioValue) + " SEK"
+  ? (allPricesLoaded ? formatMoney(totalPortfolioValue) + " SEK" : "Laddar...")
   : "Logga in för att handla";
 
 const container=

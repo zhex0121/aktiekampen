@@ -757,6 +757,8 @@ let aktivAktie=null;
 
 let saldo=10000;
 
+let previousPortValue = null; 
+    
 let portfölj={};
 
 let chart=null;
@@ -1943,9 +1945,23 @@ document.getElementById('balanceDisplay').innerText = currentUser
   ? (prisarLaddar ? "" : formatMoney(saldo) + " SEK")
   : "";
     
-document.getElementById('portfolioValueDisplay').innerText = currentUser
-  ? (prisarLaddar ? "Laddar..." : formatMoney(totalPortfolioValue) + " SEK")
-  : "Logga in för att handla";
+if (currentUser && !prisarLaddar) {
+    const formatted = formatMoney(totalPortfolioValue) + " SEK";
+    const el = document.getElementById('portfolioValueDisplay');
+    el.innerText = formatted;
+    
+    if (previousPortValue !== null && totalPortfolioValue !== previousPortValue) {
+        const riktning = totalPortfolioValue > previousPortValue ? 'up' : 'down';
+        el.classList.remove('up', 'down');
+        el.classList.add(riktning);
+        setTimeout(() => el.classList.remove('up', 'down'), 700);
+    }
+    previousPortValue = totalPortfolioValue;
+} else {
+    document.getElementById('portfolioValueDisplay').innerText = currentUser
+        ? "Laddar..."
+        : "Logga in för att handla";
+}
 
 const container=
 document.getElementById('portfolioDisplay');

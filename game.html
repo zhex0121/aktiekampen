@@ -889,7 +889,7 @@ async function fetchPrice(ticker) {
   try {
     const cleanTicker =
 ticker.includes("(")
-? ticker.split("(")[1].replace(")",'').trim()
+? ticker.split("(")[1].replace(")","").trim()
 : ticker;
     const response = await fetch(`https://server-api-092b.onrender.com/api/price/${encodeURIComponent(cleanTicker)}`);
 
@@ -1835,7 +1835,7 @@ Number((portfölj[aktivAktie].antal+antal).toPrecision(12));
     const isExpensive = pris * currentExchangeRate > saldo;
     
     const info = isExpensive
-        ? `Du har inte råd med ${antal} st. Du kan köpa andelar av ett värdepapper — testa t.ex. <b style="color:var(--up);cursor:pointer;" onclick="document.getElementById('tradeAmount').value='${affordableAmount.toFixed(4).replace('.','','')}';rensaTradeFel();">${affordableAmount.toFixed(4).replace('.','','')} st</b> för ditt hela saldo.`
+        ? `Du har inte råd med ${antal} st. Du kan köpa andelar av ett värdepapper — testa t.ex. <b style="color:var(--up);cursor:pointer;" onclick="document.getElementById('tradeAmount').value='${affordableAmount.toFixed(4).replace('.',',')}';rensaTradeFel();">${affordableAmount.toFixed(4).replace('.',',')} st</b> för ditt hela saldo.`
         : "Du har inte råd. Testa ett mindre antal.";
     
     visaTradeFel(info);
@@ -2147,18 +2147,15 @@ setChartMode('live');
 // 5. Håll kvar din error-rensares lyssnare
 document.getElementById('tradeAmount').addEventListener('input', rensaTradeFel);
 
-
-  
-</script>
-<div id="welcomeBackMessage" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.8); color: white; display: none; align-items: center; justify-content: center; z-index: 10000; font-size: 3rem; font-weight: bold;">
-  Welcome Back
-</div>
 <script>
 document.addEventListener('visibilitychange', function() {
   if (!document.hidden) {
     location.reload();
   }
 });
+
+  
 </script>
+
 </body>
 </html>

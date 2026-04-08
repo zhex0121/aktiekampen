@@ -634,22 +634,18 @@ Laddar priser...
 </div>
 
 <div class="stat-box">
-
-<div style="color:var(--text-dim)">
-
-Tillgängligt saldo
-
-</div>
-
-<div
-id="balanceDisplay"
-style="font-size:1.5rem;
-font-weight:bold;">
-
-Logga in för att handla
-
-</div>
-
+  <div style="color:var(--text-dim); font-size:0.85rem;">
+    Portföljvärde
+  </div>
+  <div id="portfolioValueDisplay" style="font-size:1.5rem; font-weight:bold;">
+    –
+  </div>
+  <div style="margin-top:8px; display:flex; align-items:center; gap:6px;">
+    <span style="color:var(--text-dim); font-size:0.78rem;">Tillgängligt för köp</span>
+    <span id="balanceDisplay" style="font-size:0.88rem; font-weight:600; color:var(--text-dim);">
+      Logga in för att handla
+    </span>
+  </div>
 </div>
 
 <div
@@ -1929,10 +1925,21 @@ window.tradeLock=false;
     
 function uppdateraPortfölj(){
 
-document.getElementById('balanceDisplay')
-  .innerText = currentUser
-    ? formatMoney(saldo) + " SEK"
-    : "Logga in för att handla";
+document.getElementById('balanceDisplay').innerText = currentUser
+  ? formatMoney(saldo) + " SEK"
+  : "Logga in för att handla";
+
+// Calculate total portfolio market value
+let totalPortfolioValue = saldo;
+for (let s in portfölj) {
+  const pris = aktier[s].pris;
+  if (pris && Number.isFinite(pris)) {
+    totalPortfolioValue += portfölj[s].antal * pris * currentExchangeRate;
+  }
+}
+document.getElementById('portfolioValueDisplay').innerText = currentUser
+  ? formatMoney(totalPortfolioValue) + " SEK"
+  : "Logga in för att handla";
 
 const container=
 document.getElementById('portfolioDisplay');

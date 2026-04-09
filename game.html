@@ -349,16 +349,21 @@ color:white;
 
 }
 
+/* Gör rubriken sticky längst upp i portfölj-listan */
+.portfolio-list h4 {
+    position: sticky;
+    top: 0; /* längst upp i sin container */
+    background: var(--surface); /* matcha bakgrunden så den inte blir genomskinlig */
+    z-index: 10; /* se till att den ligger ovanför listan */
+    margin: 0;
+    padding-bottom: 5px;
+    padding-top: 5px; /* lite luft ovanför texten */
+    border-bottom: 1px solid var(--border);
+}
+    
 .portfolio-list {
-  font-size: 0.85rem;
-  margin-top: 20px;
-  max-height: calc(100vh - 320px);
-  overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255,255,255,0.15) transparent;
-  padding-right: 5px;
-  scroll-behavior: smooth;
-  -webkit-overflow-scrolling: touch;
+    max-height: calc(100vh - 320px); /* eller vad du vill */
+    overflow-y: auto;
 }
 
 /* Shorter, subtle scrollbars (Chrome, Edge, Safari) */

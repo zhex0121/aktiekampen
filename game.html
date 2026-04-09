@@ -1840,7 +1840,7 @@ if(!pris || pris <= 0 || !Number.isFinite(pris)){
 
                 portfölj[aktivAktie].antal=
 Number((portfölj[aktivAktie].antal+antal).toPrecision(12));
-                portfölj[aktivAktie].totaltInköp+=kostnadUSD; 
+                portfölj[aktivAktie].totaltInköp += kostnad; 
                 rensaTradeFel();
                 
                 console.log(`Köpte ${antal} st ${aktivAktie} för ${kostnadUSD} USD`);
@@ -1975,9 +1975,7 @@ for(let s in portfölj){
 
 const antal=portfölj[s].antal;
 
-const snitt=
-
-portfölj[s].totaltInköp/antal;
+const snitt = (portfölj[s].totaltInköp / antal) / currentExchangeRate;
 
 const pris = aktier[s].pris;
 
@@ -1991,8 +1989,7 @@ const värdeUSD = antal * pris;
 
 värde = värdeUSD * currentExchangeRate;
 
-const totaltInköpSEK =
-portfölj[s].totaltInköp * currentExchangeRate;
+const totaltInköpSEK = portfölj[s].totaltInköp;
 
 resultat = värde - totaltInköpSEK;
 

@@ -125,11 +125,14 @@ overflow:hidden;
     z-index: 1001;
     visibility: hidden;        /* NEW */
     opacity: 0;                /* NEW */
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    transform: translateY(-5px);
 }
 
 .profile-dropdown.show {
     visibility: visible;       /* CHANGE */
     opacity: 1;                /* NEW */
+    transform: translateY(0);
 }
 
       .profile-email {
@@ -228,16 +231,34 @@ box-sizing:border-box;
 
 }
 
-.stock-list{
+.stock-list,
+.portfolio-list {
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.15) transparent; /* softer */
+  padding-right: 5px;
+}
 
-overflow-y:auto;
+/* Chrome / Edge / Safari */
+.stock-list::-webkit-scrollbar,
+.portfolio-list::-webkit-scrollbar {
+  width: 6px;
+}
 
-scrollbar-width:thin;
+.stock-list::-webkit-scrollbar-track,
+.portfolio-list::-webkit-scrollbar-track {
+  background: transparent;
+}
 
-scrollbar-color:var(--accent) transparent;
+.stock-list::-webkit-scrollbar-thumb,
+.portfolio-list::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.15);
+  border-radius: 10px;
+}
 
-padding-right:5px;
-
+.stock-list::-webkit-scrollbar-thumb:hover,
+.portfolio-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(255,255,255,0.25);
 }
 
 .stock-item{
@@ -270,6 +291,32 @@ border-left:3px solid var(--accent);
 
 }
 
+.portfolio-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.portfolio-header {
+  flex-shrink: 0;
+  margin: 0 0 10px 0;
+}
+
+.portfolio-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.portfolio-header {
+  position: sticky;
+  top: 0;
+  background: var(--surface);
+  z-index: 2;
+  padding-bottom: 8px;
+}
+    
 .main-content{
 
 display:flex;
@@ -349,17 +396,7 @@ color:white;
 
 }
 
-.portfolio-list {
-  font-size: 0.85rem;
-  margin-top: 20px;
-  max-height: calc(100vh - 320px);
-  overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: var(--accent) transparent;
-  padding-right: 5px;
-  scroll-behavior: smooth;
-  -webkit-overflow-scrolling: touch;
-}
+
 
 
 .up{color:var(--up);}
@@ -632,13 +669,7 @@ Laddar priser...
 
 <div class="trade-side">
 
-<div id="accountBar" class="account-bar" style="display:none;">
-    <div class="account-main-row">
-        <button id="avatarBtn" class="avatar-btn" onclick="toggleEmailView()"></button>
-        <button class="small-btn logout-btn" onclick="handleLogout()">LOGGA UT</button>
-    </div>
-    <div id="accountEmail" class="account-email"></div>
-</div>
+
 
 <div class="stat-box">
   <div style="color:var(--text-dim); font-size:0.85rem;">
@@ -696,18 +727,9 @@ SÄLJ
 
 </div>
 
-<div
-class="portfolio-list"
-id="portfolioDisplay">
-
-<h4
-style="border-bottom:1px solid var(--border);
-padding-bottom:5px;">
-
-PORTFÖLJ
-
-</h4>
-
+<div class="portfolio-wrapper">
+  <h4 class="portfolio-header">PORTFÖLJ</h4>
+  <div class="portfolio-list" id="portfolioDisplay"></div>
 </div>
 
 </div>
@@ -975,12 +997,6 @@ document.addEventListener('click', function(event) {
         dropdown.classList.remove('show');
     }
 });
-
-// Funktion för att visa/dölja bara e-posten
-function toggleEmailView() {
-    const emailEl = document.getElementById('accountEmail');
-    emailEl.classList.toggle('show');
-}
 
 
     
@@ -1974,9 +1990,7 @@ if (currentUser && !prisarLaddar) {
 const container=
 document.getElementById('portfolioDisplay');
 
-container.innerHTML=
-
-'<h4 style="border-bottom:1px solid var(--border); padding-bottom:5px;">PORTFÖLJ</h4>';
+container.innerHTML = '';
 
 for(let s in portfölj){
 

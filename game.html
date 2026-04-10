@@ -2025,13 +2025,13 @@ procent =
 
 container.innerHTML += `
   <div style="margin-bottom:12px; padding-bottom:10px; border-bottom:1px solid #1a1a1a;">
-    <div style="display:flex; flex-direction:column; gap:4px;">
+    <div style="display:flex; flex-direction:column; gap:2px;">
       <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px;">
         <span style="cursor:pointer; color:#2962ff; text-decoration:none; word-break:break-word; line-height:1.2;"
               onclick="väljAktie('${s}')"
               onmouseover="this.style.textDecoration='underline'"
               onmouseout="this.style.textDecoration='none'">
-         ${s.split(' (')[0]} ${Number(antal).toLocaleString('sv-SE', { minimumFractionDigits: 0, maximumFractionDigits: 4 })} st
+         ${s.split(' (')[0]}
         </span>
 
         <span style="white-space:nowrap; flex-shrink:0; margin-left:12px; font-weight:bold;">
@@ -2039,6 +2039,9 @@ container.innerHTML += `
         </span>
       </div>
 
+<div style="font-size:0.75rem; color:var(--text-dim); margin-top:2px;">
+Antal: ${Number(antal).toLocaleString('sv-SE', { minimumFractionDigits: 0, maximumFractionDigits: 4 })} st
+</div>
       <div style="font-size:0.75rem; color:var(--text-dim); margin-top:2px;">
         Snittpris: ${Number(snitt).toLocaleString('sv-SE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD
       </div>

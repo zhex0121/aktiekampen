@@ -797,22 +797,21 @@ const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYm
 
 const { createClient } = supabase;
 
-const supabaseClient =
-createClient(
-SUPABASE_URL,
-SUPABASE_ANON_KEY,
-{
-auth:{
-persistSession:true,
-autoRefreshToken:true,
-detectSessionInUrl:true
-}
-}
+const supabaseClient = createClient(
+  SUPABASE_URL,
+  SUPABASE_ANON_KEY,
+  {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true
+    }
+  }
 );
     
 
 setInterval(() => {
-  if (authReady && currentUser && hydrated) {
+  if (authReady && currentUser && hydrated && !document.hidden) {
     sparaPortföljTillSupabase();
   }
 }, 20000);
@@ -2155,21 +2154,5 @@ setChartMode('live');
 // 5. Håll kvar din error-rensares lyssnare
 document.getElementById('tradeAmount').addEventListener('input', rensaTradeFel);
 </script>
-    
-    
-<script>
-let lastReload = 0;
-
-document.addEventListener('visibilitychange', function () {
-  if (!document.hidden) {
-    const now = Date.now();
-    if (now - lastReload < 2000) return; // max 1 reload per 2s
-    lastReload = now;
-    location.reload();
-  }
-});
-    
-</script>
-
 </body>
 </html>

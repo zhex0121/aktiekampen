@@ -2031,7 +2031,7 @@ container.innerHTML += `
               onclick="väljAktie('${s}')"
               onmouseover="this.style.textDecoration='underline'"
               onmouseout="this.style.textDecoration='none'">
-          ${s} ${Number(antal).toLocaleString('sv-SE', { minimumFractionDigits: 0, maximumFractionDigits: 4 })} st
+         ${s.split(' (')[0]} ${Number(antal).toLocaleString('sv-SE', { minimumFractionDigits: 0, maximumFractionDigits: 4 })} st
         </span>
 
         <span style="white-space:nowrap; flex-shrink:0; margin-left:12px; font-weight:bold;">

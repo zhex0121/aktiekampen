@@ -757,6 +757,8 @@ SÄLJ
 
 <script>
 
+window.tradeLock = false;
+
 const symboler = [
     "S&P 500 (SPY)", "Nasdaq 100 (QQQ)", "Dow Jones (DIA)",
     "Bitcoin (BINANCE:BTCUSDT)", "Ethereum (BINANCE:ETHUSDT)", "Solana (BINANCE:SOLUSDT)", "Dogecoin (BINANCE:DOGEUSDT)",
@@ -784,6 +786,8 @@ let aktivAktie=null;
 let hydrated = false;
 
 let isLoadingProfile = false;
+
+let appReady = false;
     
 let saldo=10000;
 
@@ -1265,54 +1269,56 @@ async function signUp() {
 
 
     
-  
 async function initSupabaseAuth() {
 
-fetchExchangeRate();
+    fetchExchangeRate();
 
-setInterval(fetchExchangeRate,
-12 * 60 * 60 * 1000);
+    setInterval(fetchExchangeRate, 12 * 60 * 60 * 1000);
 
-showLoggedOutUI();
+    showLoggedOutUI();
 
-const { data:{session} } =
-await supabaseClient.auth.getSession();
+    const { data: { session } } =
+        await supabaseClient.auth.getSession();
 
-if(session?.user){
-
-currentUser=session.user;
-
-showLoggedInUI();
-
-await ensureProfileAndLoad();
-
-}
-
-supabaseClient.auth.onAuthStateChange(
-async (event, session) => {
-
-    if (event === "SIGNED_IN" && session?.user) {
+    if (session?.user) {
 
         currentUser = session.user;
 
         showLoggedInUI();
 
-        await ensureProfileAndLoad(); 
-    } 
-    else if (event === "SIGNED_OUT") {
+        await ensureProfileAndLoad();
 
-        currentUser = null;
-        saldo = 10000;
-        portfölj = {};
-
-        showLoggedOutUI();
-        uppdateraPortfölj();
-
+        appReady = true; // ✅ IMPORTANT (fix for hard reload case)
     }
 
-});
-}
+    supabaseClient.auth.onAuthStateChange(
+        async (event, session) => {
 
+            if (event === "SIGNED_IN" && session?.user) {
+
+                currentUser = session.user;
+
+                showLoggedInUI();
+
+                await ensureProfileAndLoad();
+
+                appReady = true;
+            }
+
+            else if (event === "SIGNED_OUT") {
+
+                currentUser = null;
+                saldo = 10000;
+                portfölj = {};
+
+                showLoggedOutUI();
+                uppdateraPortfölj();
+
+                appReady = false; // optional but correct
+            }
+        }
+    );
+}
     
 
 let chartMode='live'; // live or history
@@ -1770,7 +1776,9 @@ function updateChartView(){
   
 async function genomförAffär(typ){
     
-console.log("TRADE CLICKED", currentUser, hydrated, tradeLock);
+console.log("TRADE CLICKED", currentUser, hydrated, window.tradeLock);
+
+if (!appReady) return;
     
 if(window.tradeLock) return;
 

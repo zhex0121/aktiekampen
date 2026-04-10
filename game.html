@@ -2034,8 +2034,8 @@ container.innerHTML += `
           ${s} ${Number(antal).toLocaleString('sv-SE', { minimumFractionDigits: 0, maximumFractionDigits: 4 })} st
         </span>
 
-        <span style="white-space:nowrap; flex-shrink:0; margin-left:12px;">
-          ${värde !== null ? Number(värde).toLocaleString('sv-SE', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) : '--'} SEK
+        <span style="white-space:nowrap; flex-shrink:0; margin-left:12px; font-weight:bold;">
+          ${värde !== null    ? Number(värde).toLocaleString('sv-SE', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) + ' SEK'   : '--'}
         </span>
       </div>
 
@@ -2043,9 +2043,11 @@ container.innerHTML += `
         Snittpris: ${Number(snitt).toLocaleString('sv-SE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD
       </div>
 
-      <div class="${resultat !== null && resultat >= 0 ? 'up' : 'down'}"
+      <div class="${resultat === null ? '' : (resultat >= 0 ? 'up' : 'down')}"
            style="font-size:0.75rem; margin-top:2px;">
-        Resultat: ${resultat !== null ? Number(resultat).toLocaleString('sv-SE', { minimumFractionDigits: 0, maximumFractionDigits: 2 }) : 'Laddar priser...'} SEK
+        Resultat: ${resultat !== null 
+  ? Number(resultat).toLocaleString('sv-SE', { minimumFractionDigits: 0, maximumFractionDigits: 2 }) + ' SEK'
+  : 'Laddar priser...'}
         ${procent !== null ? `(${Number(procent).toLocaleString('sv-SE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%)` : ''}
       </div>
     </div>

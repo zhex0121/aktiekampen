@@ -874,7 +874,9 @@ function laddaFrånLokalt() {
     return null;
 }
 
-let currentExchangeRate = 10.65; // 默认汇率
+let currentExchangeRate = null; // null = not yet fetched
+let fxReady = false;
+
 
 async function fetchExchangeRate() {
     try {
@@ -883,6 +885,8 @@ async function fetchExchangeRate() {
         if (data.usdToSek) {
              const oldRate = currentExchangeRate;
             currentExchangeRate = data.usdToSek;
+            fxReady = true;
+            console.log("FX laddad:", currentExchangeRate);
              if (oldRate !== currentExchangeRate) {
                 console.log(`汇率更新: ${oldRate} → ${currentExchangeRate}`);
                 
@@ -1784,6 +1788,11 @@ async function genomförAffär(typ){
 console.log("TRADE CLICKED", currentUser, hydrated, window.tradeLock);
 
 if (!appReady) return;
+
+if (!fxReady) {
+    visaTradeFel("Växelkursen laddas fortfarande. Vänta ett ögonblick och försök igen.");
+    return;
+}
     
 if(window.tradeLock) return;
 
@@ -1938,11 +1947,11 @@ for (let s in portfölj) {
   totalPortfolioValue += portfölj[s].antal * pris * currentExchangeRate;
 }
 
-document.getElementById('balanceDisplay').innerText = currentUser
+document.getElementById('balanceDisplay').innerText = currentUser && fxReady
   ? (prisarLaddar ? "" : formatMoney(saldo) + " SEK")
   : "";
     
-if (currentUser && !prisarLaddar) {
+if (currentUser && !prisarLaddar && fxReady) {
     const formatted = formatMoney(totalPortfolioValue) + " SEK";
     const el = document.getElementById('portfolioValueDisplay');
     el.innerText = formatted;
@@ -1969,7 +1978,7 @@ for(let s in portfölj){
 
 const antal=portfölj[s].antal;
 
-const snitt = (portfölj[s].totaltInköp / antal) / currentExchangeRate;
+const snitt = fxReady ? (portfölj[s].totaltInköp / antal) / currentExchangeRate : null;
 
 const pris = aktier[s].pris;
 
@@ -1977,7 +1986,7 @@ let värde = null;
 let resultat = null;
 let procent = null;
 
-if(pris !== null && Number.isFinite(pris)){
+if(pris !== null && Number.isFinite(pris) && fxReady){
 
 const värdeUSD = antal * pris;
 
@@ -2013,7 +2022,7 @@ container.innerHTML += `
 Antal: ${Number(antal).toLocaleString('sv-SE', { minimumFractionDigits: 0, maximumFractionDigits: 4 })} st
 </div>
       <div style="font-size:0.75rem; color:var(--text-dim); margin-top:2px;">
-        Snittpris: ${Number(snitt).toLocaleString('sv-SE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD
+        Snittpris: ${snitt !== null ? Number(snitt).toLocaleString('sv-SE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' USD' : '...'}
       </div>
 
       <div class="${resultat === null ? '' : (resultat >= 0 ? 'up' : 'down')}"
